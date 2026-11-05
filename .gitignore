@@ -88,3 +88,4 @@ $RECYCLE.BIN/
 .coverage.*
 htmlcov/
 .pytest_cache/
+
