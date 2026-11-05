@@ -149,3 +149,4 @@ export class ApiService {
     return this.request(`/reports/monthly?year=${year}&month=${month}`, { method: 'GET' });
   }
 }
+
