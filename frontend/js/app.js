@@ -6,6 +6,7 @@
 import { Utils } from './utils.js';
 import { Navigation } from './navigation.js';
 import { Dashboard } from './dashboard.js';
+import { VoiceAssistant } from './voice.js';
 
 export const App = {
   currentLang: 'en',
@@ -14,7 +15,14 @@ export const App = {
     this.initLanguage();
     Navigation.init();
     Dashboard.init();
+    VoiceAssistant.init();
     this.bindGlobalEvents();
+
+    // Check if initial hash is set (e.g. #voice)
+    const initialHash = window.location.hash.replace('#', '');
+    if (initialHash && ['dashboard', 'voice', 'inventory', 'sales', 'reports', 'customers', 'settings'].includes(initialHash)) {
+      Navigation.switchView(initialHash, false);
+    }
 
     console.log('%c TamilVoice Kirana AI %c Ready ', 'background: #2563EB; color: #fff; font-weight: bold; padding: 4px 8px; border-radius: 4px 0 0 4px;', 'background: #0F172A; color: #93C5FD; padding: 4px 8px; border-radius: 0 4px 4px 0;');
   },

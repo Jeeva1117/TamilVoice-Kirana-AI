@@ -525,26 +525,241 @@
         </section>
 
         <!-- ==================================================================
-             PLACEHOLDER VIEWS FOR SUBSEQUENT PHASES
+             VIEW: VOICE ASSISTANT (PHASE 2 COMPLETE)
              ================================================================== -->
         <section id="view-voice" class="view-pane">
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title-wrap">
-                <h2 class="card-title">Tamil Voice Assistant (தமிழ் வாய்ஸ் அசிஸ்டண்ட்)</h2>
-                <span class="card-subtitle">Phase 3: Real-time Gnani STT & TTS speech engine with Gemini reasoning</span>
+          <div class="voice-interface-wrapper">
+
+            <!-- Hero Stage Card -->
+            <div class="voice-stage-card state-idle" id="voice-stage-card">
+              <!-- Top Row Controls -->
+              <div class="voice-stage-header">
+                <div class="voice-stage-titles">
+                  <h2 class="voice-stage-title">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+                    <span>TamilVoice Assistant (தமிழ் வாய்ஸ் அசிஸ்டண்ட்)</span>
+                  </h2>
+                  <p class="voice-stage-subtitle">Manage your shop operations using natural Tamil or Tanglish voice commands.</p>
+                </div>
+                <div class="voice-header-badges">
+                  <div class="lang-selector-group" role="group" aria-label="Voice Language Preference">
+                    <button class="lang-chip active" data-voice-lang="ta">Tamil</button>
+                    <button class="lang-chip" data-voice-lang="tanglish">Tanglish</button>
+                    <button class="lang-chip" data-voice-lang="en">English</button>
+                  </div>
+                  <span class="badge-pill warning" style="font-weight: 700;">DEMO MODE</span>
+                </div>
+              </div>
+
+              <!-- State Status Pill & Prompt Message -->
+              <div class="voice-status-box">
+                <div class="voice-status-pill idle" id="voice-status-pill">
+                  <span class="status-dot-pulse"></span>
+                  <span id="voice-status-pill-text">Idle — Ready</span>
+                </div>
+                <div class="voice-prompt-text" id="voice-prompt-text">“வணக்கம்! உங்கள் கடைக்கு இன்று என்ன செய்ய வேண்டும்?”</div>
+              </div>
+
+              <!-- Main Interactive Microphone Stage -->
+              <div class="mic-stage-center">
+                <div class="mic-button-wrapper" id="mic-btn-wrapper">
+                  <div class="mic-pulse-ring"></div>
+                  <div class="mic-pulse-ring-2"></div>
+                  <button class="btn-mic-main" id="btn-main-mic" aria-label="Toggle Microphone Recording">
+                    <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                      <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                      <line x1="12" x2="12" y1="19" y2="22"/>
+                    </svg>
+                  </button>
+                </div>
+
+                <!-- Animated Waveform Bars -->
+                <div class="waveform-bars-wrap" aria-hidden="true">
+                  <div class="wave-bar"></div>
+                  <div class="wave-bar"></div>
+                  <div class="wave-bar"></div>
+                  <div class="wave-bar"></div>
+                  <div class="wave-bar"></div>
+                  <div class="wave-bar"></div>
+                  <div class="wave-bar"></div>
+                  <div class="wave-bar"></div>
+                </div>
+
+                <!-- Recording Controls (Timer & Stop Button) -->
+                <div class="recording-controls-row">
+                  <div class="rec-timer-pill">
+                    <span class="rec-timer-dot"></span>
+                    <span id="voice-rec-timer">00:00</span>
+                  </div>
+                  <button class="btn-stop-rec" id="btn-stop-recording">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>
+                    <span>Stop</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="voice-hero-notice">
+                Browser audio recorded for demo. Gnani Prisma v2.5 STT & Timbre v2.5 TTS integration scheduled for backend phase.
               </div>
             </div>
-            <div class="card-body" style="padding: 3rem; text-align: center;">
-              <div style="width: 72px; height: 72px; border-radius: 50%; background: #EFF6FF; color: var(--color-primary); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
-                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+
+            <!-- Demo Voice Commands Selector -->
+            <div class="demo-commands-card">
+              <div class="demo-commands-header">
+                <div class="demo-commands-title">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+                  <span>Quick Demo Voice Commands (பரிந்துரைக்கப்பட்ட கட்டளைகள்)</span>
+                </div>
+                <span class="text-2xs text-muted">Click any command to test workflow</span>
               </div>
-              <h3 style="font-size: 1.25rem; margin-bottom: 0.5rem;">Voice Assistant Interface Ready for Phase 3</h3>
-              <p style="max-width: 480px; margin: 0 auto 1.5rem; color: var(--color-text-secondary);">
-                The dedicated voice assistant layout with 7 states (Idle, Listening, Processing, Confirmation, Executing, Success, Error) will be implemented in Phase 3.
-              </p>
-              <button class="btn btn-primary" onclick="window.location.hash='dashboard'">Return to Dashboard</button>
+              <div class="demo-command-chips-grid" id="demo-commands-grid">
+                <!-- Populated by voice.js -->
+              </div>
             </div>
+
+            <!-- Two-Column Grid: Transcript & AI Interpretation -->
+            <div class="voice-results-grid">
+              <!-- Recognized Transcript -->
+              <div class="transcript-card">
+                <div class="transcript-header">
+                  <span class="card-title">Recognized Transcript (பேச்சு உரை)</span>
+                  <div class="transcript-actions">
+                    <button class="btn btn-xs btn-outline" id="btn-edit-transcript">Edit</button>
+                  </div>
+                </div>
+                <div class="transcript-display-box">
+                  <textarea id="voice-transcript-input" class="transcript-textarea" readonly placeholder="Your recognized speech will appear here..."></textarea>
+                </div>
+                <span class="text-2xs text-muted" style="margin-top: 6px;">Transcribed via browser audio engine. You can click 'Edit' to tweak wording.</span>
+              </div>
+
+              <!-- AI Intent Interpretation -->
+              <div class="interpretation-card">
+                <div class="card-header" style="padding: 0 0 var(--space-3) 0; border: none;">
+                  <span class="card-title">AI Intent & Entities (பகுப்பாய்வு)</span>
+                  <span class="badge-pill info">Gemini Reasoning</span>
+                </div>
+                <div class="entity-grid">
+                  <div class="entity-chip">
+                    <span class="entity-label">Detected Action</span>
+                    <span class="entity-val text-primary" id="entity-action">Waiting for input...</span>
+                  </div>
+                  <div class="entity-chip">
+                    <span class="entity-label">Target Product</span>
+                    <span class="entity-val" id="entity-product">—</span>
+                  </div>
+                  <div class="entity-chip">
+                    <span class="entity-label">Quantity & Unit</span>
+                    <span class="entity-val" id="entity-qty">—</span>
+                  </div>
+                  <div class="entity-chip">
+                    <span class="entity-label">Intent Confidence</span>
+                    <span class="entity-val text-success" id="entity-confidence">—</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Action Confirmation Card (Visible when State is 'confirmation') -->
+            <div class="confirmation-card" id="voice-confirmation-card">
+              <div class="confirmation-header">
+                <div class="confirmation-title">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+                  <span>Action Confirmation Required (செயல்பாட்டு உறுதிப்படுத்தல்)</span>
+                </div>
+                <span class="badge-pill warning">Approval Needed</span>
+              </div>
+
+              <div class="confirmation-details-box">
+                <div class="confirmation-summary-text" id="confirmation-summary-text">
+                  Action: Add Stock | Product: Ponni Boiled Rice | Quantity: 5 kg
+                </div>
+
+                <!-- Inline Edit Form -->
+                <div class="inline-edit-form" id="inline-edit-form">
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Action</label>
+                    <select class="form-select" id="edit-action-type">
+                      <option value="Add Stock">Add Stock (சரக்கு சேர்க்க)</option>
+                      <option value="Record Sale">Record Sale (விற்பனை பதிவு)</option>
+                    </select>
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Product Name</label>
+                    <input type="text" class="form-input" id="edit-product-name" value="Ponni Boiled Rice">
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Quantity</label>
+                    <input type="number" class="form-input" id="edit-quantity" value="5" min="1">
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Unit</label>
+                    <select class="form-select" id="edit-unit">
+                      <option value="kg">kg (கிலோ)</option>
+                      <option value="gram">gram (கிராம்)</option>
+                      <option value="litre">litre (லிட்டர்)</option>
+                      <option value="bags">bags (மூட்டை)</option>
+                      <option value="packets">packets (பாக்கெட்)</option>
+                    </select>
+                  </div>
+                  <div style="display: flex; align-items: flex-end;">
+                    <button class="btn btn-sm btn-primary w-full" id="btn-apply-edit">Apply Changes</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="confirmation-actions-row">
+                <button class="btn btn-ghost text-danger" id="btn-cancel-action">Cancel (ரத்து செய்)</button>
+                <button class="btn btn-outline" id="btn-edit-action">Edit Details (விவரங்களை மாற்று)</button>
+                <button class="btn btn-success" id="btn-confirm-action">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span>Confirm Action (உறுதிப்படுத்து)</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Assistant Response Panel -->
+            <div class="assistant-response-card">
+              <div class="card-header" style="padding: 0 0 var(--space-3) 0; border: none;">
+                <span class="card-title">Assistant Voice & Text Response (பதில்)</span>
+                <div class="response-lang-tabs">
+                  <button class="response-tab-btn active" data-lang="ta">Tamil</button>
+                  <button class="response-tab-btn" data-lang="tanglish">Tanglish</button>
+                  <button class="response-tab-btn" data-lang="en">English</button>
+                </div>
+              </div>
+
+              <div class="response-bubble" id="assistant-response-bubble">
+                “வணக்கம்! நான் உங்கள் தமிழ் கிரானா உதவியாளர். மேலே உள்ள மைக்கை அழுத்தி பேசவும் அல்லது டெமோ கட்டளையை தேர்வு செய்யவும்.”
+              </div>
+
+              <div class="tts-controls-row">
+                <div style="display: flex; align-items: center; gap: var(--space-2);">
+                  <button class="btn btn-sm btn-primary" id="btn-speak-response">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+                    <span>Speak Response</span>
+                  </button>
+                  <button class="btn btn-sm btn-outline" id="btn-stop-speak" disabled>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>
+                    <span>Stop</span>
+                  </button>
+                </div>
+                <span class="tts-status-sub" id="tts-voice-notice">Browser voice demo — Gnani Timbre integration pending.</span>
+              </div>
+            </div>
+
+            <!-- Conversation History List -->
+            <div class="history-card">
+              <div class="card-header" style="padding: 0 0 var(--space-3) 0; border: none;">
+                <span class="card-title">Recent Voice Interactions (சமீபத்திய கட்டளைகள்)</span>
+                <button class="btn btn-xs btn-outline" id="btn-clear-history">Clear History</button>
+              </div>
+              <div class="history-items-list" id="voice-history-list">
+                <!-- Populated by voice.js -->
+              </div>
+            </div>
+
           </div>
         </section>
 

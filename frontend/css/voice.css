@@ -1,19 +1,21 @@
 /**
  * TamilVoice Kirana AI - Voice Assistant Styles
- * Phase 2 Preparation: Waveform animations, microphone pulse, and 7 UI states
+ * Phase 2: Advanced Voice Interface, Microphone Animations, 7 UI States & Confirmation Workflow
  */
 
 .voice-interface-wrapper {
-  max-width: 900px;
+  max-width: 980px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
 }
 
-/* Voice Hero Stage */
+/* ==========================================================================
+   Voice Assistant Stage (Hero Card)
+   ========================================================================== */
 .voice-stage-card {
-  background: radial-gradient(circle at 50% 30%, #1E293B 0%, #0F172A 100%);
+  background: radial-gradient(circle at 50% 25%, #1E293B 0%, #0F172A 100%);
   border: 1px solid #334155;
   border-radius: var(--radius-2xl);
   padding: var(--space-8) var(--space-6);
@@ -22,159 +24,513 @@
   position: relative;
   overflow: hidden;
   box-shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.5);
+  transition: all var(--transition-base);
 }
 
 .voice-stage-card::before {
   content: '';
   position: absolute;
-  top: 50%;
+  top: 40%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 320px;
-  height: 320px;
-  background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, rgba(139, 92, 246, 0) 70%);
+  width: 380px;
+  height: 380px;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.18) 0%, rgba(139, 92, 246, 0) 70%);
   border-radius: 50%;
   pointer-events: none;
 }
 
-/* Microphone Button */
+/* Header & Controls in Hero */
+.voice-stage-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  position: relative;
+  z-index: 2;
+  margin-bottom: var(--space-4);
+}
+
+.voice-stage-titles {
+  text-align: left;
+}
+
+.voice-stage-title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2-5);
+}
+
+.voice-stage-subtitle {
+  font-size: var(--font-size-sm);
+  color: #94A3B8;
+  margin-top: 2px;
+}
+
+/* Mode Pills & Language Selector */
+.voice-header-badges {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2-5);
+}
+
+.lang-selector-group {
+  display: inline-flex;
+  background-color: rgba(30, 41, 59, 0.8);
+  border: 1px solid #334155;
+  border-radius: var(--radius-full);
+  padding: 2px;
+}
+
+.lang-chip {
+  padding: 3px 10px;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: #94A3B8;
+  border-radius: var(--radius-full);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+.lang-chip.active {
+  background-color: var(--color-primary);
+  color: #FFFFFF;
+}
+
+/* State Status Banner */
+.voice-status-box {
+  position: relative;
+  z-index: 2;
+  margin: var(--space-4) auto var(--space-2);
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.voice-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0.35rem 1rem;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.01em;
+  transition: all var(--transition-base);
+}
+
+.voice-status-pill.idle {
+  background-color: rgba(30, 41, 59, 0.8);
+  border: 1px solid #475569;
+  color: #CBD5E1;
+}
+
+.voice-status-pill.listening {
+  background-color: rgba(220, 38, 38, 0.2);
+  border: 1px solid rgba(220, 38, 38, 0.5);
+  color: #FCA5A5;
+}
+
+.voice-status-pill.processing {
+  background-color: rgba(139, 92, 246, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.5);
+  color: #DDD6FE;
+}
+
+.voice-status-pill.confirmation {
+  background-color: rgba(245, 158, 11, 0.2);
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  color: #FDE68A;
+}
+
+.voice-status-pill.executing {
+  background-color: rgba(37, 99, 235, 0.2);
+  border: 1px solid rgba(37, 99, 235, 0.5);
+  color: #BFDBFE;
+}
+
+.voice-status-pill.success {
+  background-color: rgba(22, 163, 74, 0.2);
+  border: 1px solid rgba(22, 163, 74, 0.5);
+  color: #BBF7D0;
+}
+
+.voice-status-pill.error {
+  background-color: rgba(220, 38, 38, 0.2);
+  border: 1px solid rgba(220, 38, 38, 0.5);
+  color: #FCA5A5;
+}
+
+.voice-prompt-text {
+  font-family: var(--font-family-tamil);
+  font-size: var(--font-size-md);
+  color: #F8FAFC;
+  margin-top: var(--space-1);
+}
+
+/* ==========================================================================
+   Microphone Button & Waves
+   ========================================================================== */
+.mic-stage-center {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: var(--space-4) 0;
+}
+
 .mic-button-wrapper {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin: var(--space-6) 0;
 }
 
 .btn-mic-main {
   width: 96px;
   height: 96px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--color-primary), #4F46E5);
+  background: linear-gradient(135deg, #2563EB 0%, #4F46E5 100%);
   color: #FFFFFF;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4);
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  box-shadow: 0 10px 25px rgba(37, 99, 235, 0.45);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-base);
   cursor: pointer;
   border: none;
-  z-index: 2;
+  z-index: 3;
 }
 
 .btn-mic-main:hover {
-  transform: scale(1.05);
-  box-shadow: 0 14px 30px rgba(37, 99, 235, 0.5);
+  transform: scale(1.06);
+  box-shadow: 0 14px 32px rgba(37, 99, 235, 0.55);
 }
 
 .btn-mic-main:active {
-  transform: scale(0.98);
+  transform: scale(0.96);
 }
 
-/* Listening State Pulse */
-.mic-button-wrapper.state-listening .btn-mic-main {
-  background: linear-gradient(135deg, #DC2626, #EF4444);
-  box-shadow: 0 10px 25px rgba(220, 38, 38, 0.5);
+.btn-mic-main:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 
-.mic-pulse-ring {
+/* Pulsing Outer Rings */
+.mic-pulse-ring,
+.mic-pulse-ring-2 {
   position: absolute;
-  top: -12px;
-  left: -12px;
-  right: -12px;
-  bottom: -12px;
+  top: -14px;
+  left: -14px;
+  right: -14px;
+  bottom: -14px;
   border-radius: 50%;
   border: 2px solid rgba(37, 99, 235, 0.4);
   pointer-events: none;
   opacity: 0;
 }
 
-.mic-button-wrapper.state-listening .mic-pulse-ring {
+.state-listening .btn-mic-main {
+  background: linear-gradient(135deg, #DC2626 0%, #EF4444 100%);
+  box-shadow: 0 10px 30px rgba(220, 38, 38, 0.6);
+}
+
+.state-listening .mic-pulse-ring {
   opacity: 1;
   border-color: rgba(239, 68, 68, 0.6);
-  animation: micRingPulse 1.8s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+  animation: micRingPulse 2s cubic-bezier(0.1, 0.8, 0.2, 1) infinite;
+}
+
+.state-listening .mic-pulse-ring-2 {
+  opacity: 1;
+  border-color: rgba(239, 68, 68, 0.4);
+  animation: micRingPulse 2s cubic-bezier(0.1, 0.8, 0.2, 1) infinite 0.7s;
 }
 
 @keyframes micRingPulse {
-  0% { transform: scale(0.9); opacity: 0.9; }
-  100% { transform: scale(1.6); opacity: 0; }
+  0% { transform: scale(0.95); opacity: 0.9; }
+  100% { transform: scale(1.75); opacity: 0; }
 }
 
-/* Sound Waveform Visualizer */
-.waveform-bars {
+/* Waveform Visualizer */
+.waveform-bars-wrap {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: 6px;
   height: 48px;
-  margin: var(--space-4) 0;
+  margin-top: var(--space-4);
 }
 
 .wave-bar {
-  width: 4px;
-  height: 12px;
-  background-color: #64748B;
+  width: 5px;
+  height: 10px;
+  background-color: #475569;
   border-radius: var(--radius-full);
   transition: height var(--transition-fast), background-color var(--transition-fast);
 }
 
-.mic-button-wrapper.state-listening ~ .waveform-bars .wave-bar {
+.state-listening .wave-bar {
+  background-color: #F87171;
+  animation: waveBarListening 1s ease-in-out infinite alternate;
+}
+
+.state-processing .wave-bar {
   background-color: #A78BFA;
-  animation: waveBarBounce 1.2s ease-in-out infinite alternate;
+  animation: waveBarProcessing 0.8s ease-in-out infinite alternate;
 }
 
-.wave-bar:nth-child(2) { animation-delay: 0.1s; }
-.wave-bar:nth-child(3) { animation-delay: 0.2s; }
-.wave-bar:nth-child(4) { animation-delay: 0.3s; }
-.wave-bar:nth-child(5) { animation-delay: 0.4s; }
-.wave-bar:nth-child(6) { animation-delay: 0.5s; }
-.wave-bar:nth-child(7) { animation-delay: 0.2s; }
-.wave-bar:nth-child(8) { animation-delay: 0.35s; }
+.wave-bar:nth-child(2) { animation-delay: 0.12s; }
+.wave-bar:nth-child(3) { animation-delay: 0.24s; }
+.wave-bar:nth-child(4) { animation-delay: 0.36s; }
+.wave-bar:nth-child(5) { animation-delay: 0.48s; }
+.wave-bar:nth-child(6) { animation-delay: 0.60s; }
+.wave-bar:nth-child(7) { animation-delay: 0.28s; }
+.wave-bar:nth-child(8) { animation-delay: 0.42s; }
 
-@keyframes waveBarBounce {
-  0% { height: 10px; }
-  100% { height: 38px; }
+@keyframes waveBarListening {
+  0% { height: 8px; }
+  100% { height: 42px; }
 }
 
-/* Transcript & Interpretation Panel */
+@keyframes waveBarProcessing {
+  0% { height: 14px; }
+  100% { height: 32px; }
+}
+
+/* Recording Timer & Stop Button */
+.recording-controls-row {
+  display: none;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.state-listening .recording-controls-row {
+  display: flex;
+}
+
+.rec-timer-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  padding: 3px 10px;
+  background-color: rgba(15, 23, 42, 0.7);
+  border: 1px solid #334155;
+  border-radius: var(--radius-full);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  color: #F8FAFC;
+}
+
+.rec-timer-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #EF4444;
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+.btn-stop-rec {
+  background-color: #EF4444;
+  color: #FFFFFF;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+  border: none;
+}
+
+.btn-stop-rec:hover {
+  background-color: #DC2626;
+}
+
+/* Notice Tag in Hero */
+.voice-hero-notice {
+  font-size: var(--font-size-2xs);
+  color: #64748B;
+  margin-top: var(--space-4);
+  position: relative;
+  z-index: 2;
+}
+
+/* ==========================================================================
+   Demo Voice Commands Selector
+   ========================================================================== */
+.demo-commands-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-5) var(--space-6);
+  box-shadow: var(--shadow-card);
+}
+
+.demo-commands-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.demo-commands-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.demo-command-chips-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-3);
+}
+
+.demo-command-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: var(--space-3) var(--space-3-5);
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  text-align: left;
+  transition: all var(--transition-fast);
+  width: 100%;
+}
+
+.demo-command-btn:hover {
+  border-color: var(--color-primary);
+  background-color: var(--color-primary-light);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-xs);
+}
+
+.demo-btn-category {
+  font-size: var(--font-size-2xs);
+  text-transform: uppercase;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary);
+  letter-spacing: 0.04em;
+}
+
+.demo-btn-text {
+  font-family: var(--font-family-tamil);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  line-height: 1.35;
+}
+
+.demo-btn-sub {
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-secondary);
+}
+
+/* ==========================================================================
+   Transcript & AI Interpretation Panels (2-Column Grid)
+   ========================================================================== */
+.voice-results-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-6);
+}
+
+/* Transcript Card */
 .transcript-card {
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
-  padding: var(--space-6);
+  padding: var(--space-5) var(--space-6);
   box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
 }
 
 .transcript-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-3);
+}
+
+.transcript-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 
 .transcript-display-box {
+  flex: 1;
   padding: var(--space-4);
   background-color: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-sm);
   color: var(--color-text-primary);
   line-height: var(--line-height-relaxed);
   font-family: var(--font-family-tamil);
-  min-height: 72px;
+  min-height: 110px;
+  position: relative;
 }
 
-/* AI Interpretation Entity Chips */
+.transcript-textarea {
+  width: 100%;
+  height: 100%;
+  min-height: 70px;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  resize: vertical;
+  outline: none;
+  line-height: inherit;
+}
+
+/* AI Interpretation Card */
+.interpretation-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-5) var(--space-6);
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+}
+
 .entity-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: var(--space-4);
-  margin-top: var(--space-5);
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
 }
 
 .entity-chip {
-  padding: var(--space-3) var(--space-4);
-  background-color: #F8FAFC;
+  padding: var(--space-3) var(--space-3-5);
+  background-color: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   display: flex;
@@ -196,3 +552,207 @@
   color: var(--color-text-primary);
 }
 
+/* ==========================================================================
+   Action Confirmation Panel (State: confirmation)
+   ========================================================================== */
+.confirmation-card {
+  background: linear-gradient(135deg, #FEF3C7 0%, #FFFBEB 100%);
+  border: 2px solid #F59E0B;
+  border-radius: var(--radius-xl);
+  padding: var(--space-5) var(--space-6);
+  box-shadow: var(--shadow-md);
+  display: none;
+  flex-direction: column;
+  gap: var(--space-4);
+  animation: fadeIn 250ms ease-in-out;
+}
+
+.confirmation-card.active {
+  display: flex;
+}
+
+.confirmation-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.confirmation-title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+  color: #92400E;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.confirmation-details-box {
+  background-color: #FFFFFF;
+  border: 1px solid #FDE68A;
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+}
+
+.confirmation-summary-text {
+  font-size: var(--font-size-sm);
+  color: #0F172A;
+  font-weight: var(--font-weight-medium);
+  margin-bottom: var(--space-3);
+}
+
+.confirmation-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+/* Edit Details Inline Form (When editing) */
+.inline-edit-form {
+  display: none;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid #FDE68A;
+}
+
+.inline-edit-form.active {
+  display: grid;
+}
+
+/* ==========================================================================
+   Assistant Response Panel (Audio & Text)
+   ========================================================================== */
+.assistant-response-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-5) var(--space-6);
+  box-shadow: var(--shadow-card);
+}
+
+.response-lang-tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.response-tab-btn {
+  padding: 4px 10px;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-bg);
+  cursor: pointer;
+}
+
+.response-tab-btn.active {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.response-bubble {
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  line-height: var(--line-height-relaxed);
+  font-family: var(--font-family-tamil);
+  margin-bottom: var(--space-4);
+}
+
+.tts-controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.tts-status-sub {
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-muted);
+}
+
+/* ==========================================================================
+   Conversation History List
+   ========================================================================== */
+.history-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-5) var(--space-6);
+  box-shadow: var(--shadow-card);
+}
+
+.history-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2-5);
+  margin-top: var(--space-3);
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-3-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg);
+  font-size: var(--font-size-xs);
+}
+
+.history-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.history-cmd-text {
+  font-family: var(--font-family-tamil);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.history-meta {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2xs);
+}
+
+/* ==========================================================================
+   Responsive Adaptations
+   ========================================================================== */
+@media (max-width: 768px) {
+  .voice-stage-card {
+    padding: var(--space-6) var(--space-4);
+  }
+
+  .voice-stage-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .voice-results-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .confirmation-actions-row {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .confirmation-actions-row .btn {
+    width: 100%;
+  }
+}
