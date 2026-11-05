@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/voice.css">
   <link rel="stylesheet" href="css/responsive.css">
 
   <!-- Chart.js for Responsive Analytics Visualizations -->
@@ -222,6 +223,19 @@
       <!-- Main Content Container -->
       <main class="content-container">
 
+        <!-- Demo Mode Notice Banner -->
+        <div class="demo-mode-alert" role="status">
+          <div class="demo-mode-content">
+            <span class="badge-pill warning" style="font-weight: 700;">DEMO MODE</span>
+            <span class="demo-mode-text">
+              <strong>Notice:</strong> Demo Mode — Backend APIs are not connected yet. Running with client-side sample data.
+            </span>
+          </div>
+          <div class="demo-mode-actions">
+            <span class="demo-tag">Sample Data Active</span>
+          </div>
+        </div>
+
         <!-- ==================================================================
              VIEW: DASHBOARD
              ================================================================== -->
@@ -266,6 +280,31 @@
                 </button>
               </div>
             </div>
+          </div>
+
+          <!-- Quick Actions Bar -->
+          <div class="quick-actions-bar">
+            <span class="text-xs text-muted" style="font-weight: 600; text-transform: uppercase;">Quick Actions:</span>
+            <button class="quick-action-chip" onclick="window.location.hash='voice'">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+              <span>Speak in Tamil (தமிழில் பேசு)</span>
+            </button>
+            <button class="quick-action-chip" onclick="window.location.hash='sales'">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+              <span>Create New Bill (புதிய பில்)</span>
+            </button>
+            <button class="quick-action-chip" onclick="window.location.hash='inventory'">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
+              <span>Add Product (பொருள் சேர்க்க)</span>
+            </button>
+            <button class="quick-action-chip" onclick="window.location.hash='reports'">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+              <span>Daily Report (விற்பனை அறிக்கை)</span>
+            </button>
+            <button class="quick-action-chip" onclick="window.location.hash='customers'">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+              <span>Customer Khata (கடன் கணக்கு)</span>
+            </button>
           </div>
 
           <!-- 5 KPI Cards per Specification -->
