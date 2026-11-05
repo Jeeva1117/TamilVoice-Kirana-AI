@@ -296,3 +296,4 @@ export const Dashboard = {
     }).join('');
   }
 };
+

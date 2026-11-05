@@ -429,3 +429,4 @@
 .status-indicator-dot.completed { background-color: var(--color-success); }
 .status-indicator-dot.pending { background-color: var(--color-warning); }
 .status-indicator-dot.cancelled { background-color: var(--color-danger); }
+
