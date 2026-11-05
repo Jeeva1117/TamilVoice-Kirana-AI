@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="TamilVoice Kirana AI - Voice-first intelligent retail POS, inventory and billing dashboard for Indian Kirana stores.">
+  <title>TamilVoice Kirana AI — Smart Retail & Voice Dashboard</title>
+
+  <!-- Google Fonts: Inter & Noto Sans Tamil -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Tamil:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Core Stylesheets -->
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/responsive.css">
+
+  <!-- Chart.js for Responsive Analytics Visualizations -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <div class="app-shell">
+    <!-- Mobile Sidebar Backdrop Overlay -->
+    <div class="sidebar-overlay" aria-hidden="true"></div>
+
+    <!-- ======================================================================
+         Sidebar Navigation
+         ====================================================================== -->
+    <aside class="app-sidebar" aria-label="Main Navigation">
+      <!-- Sidebar Header -->
+      <div class="sidebar-header">
+        <a href="#dashboard" class="brand-logo" aria-label="TamilVoice Kirana AI Home">
+          <div class="brand-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              <line x1="12" x2="12" y1="19" y2="22"/>
+            </svg>
+          </div>
+          <div class="brand-name">
+            <span class="brand-title">TamilVoice</span>
+            <span class="brand-subtitle">Kirana AI</span>
+          </div>
+        </a>
+      </div>
+
+      <!-- Navigation Links -->
+      <nav class="sidebar-nav">
+        <div class="sidebar-section-title" data-i18n="overview">Overview</div>
+
+        <a href="#dashboard" class="nav-link active" data-view="dashboard" aria-current="page">
+          <span class="nav-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="7" height="9" x="3" y="3" rx="1"/>
+              <rect width="7" height="5" x="14" y="3" rx="1"/>
+              <rect width="7" height="9" x="14" y="12" rx="1"/>
+              <rect width="7" height="5" x="3" y="16" rx="1"/>
+            </svg>
+          </span>
+          <span class="nav-item-text">Dashboard</span>
+        </a>
+
+        <a href="#voice" class="nav-link" data-view="voice">
+          <span class="nav-icon" style="color: #A78BFA;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              <line x1="12" x2="12" y1="19" y2="22"/>
+            </svg>
+          </span>
+          <span class="nav-item-text">Voice Assistant</span>
+          <span class="nav-badge voice-badge">Tamil</span>
+        </a>
+
+        <div class="sidebar-section-title" data-i18n="management">Store Management</div>
+
+        <a href="#inventory" class="nav-link" data-view="inventory">
+          <span class="nav-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m7.5 4.27 9 5.15"/>
+              <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+              <path d="m3.3 7 8.7 5 8.7-5"/>
+              <path d="M12 22V12"/>
+            </svg>
+          </span>
+          <span class="nav-item-text">Inventory</span>
+          <span class="nav-badge count-badge">428</span>
+        </a>
+
+        <a href="#sales" class="nav-link" data-view="sales">
+          <span class="nav-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="8" cy="21" r="1"/>
+              <circle cx="19" cy="21" r="1"/>
+              <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
+            </svg>
+          </span>
+          <span class="nav-item-text">Sales & Orders</span>
+        </a>
+
+        <a href="#reports" class="nav-link" data-view="reports">
+          <span class="nav-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 3v18h18"/>
+              <path d="m19 9-5 5-4-4-3 3"/>
+            </svg>
+          </span>
+          <span class="nav-item-text">Reports & Analytics</span>
+        </a>
+
+        <a href="#customers" class="nav-link" data-view="customers">
+          <span class="nav-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </span>
+          <span class="nav-item-text">Customers (Khata)</span>
+        </a>
+
+        <div class="sidebar-section-title" data-i18n="system">System</div>
+
+        <a href="#settings" class="nav-link" data-view="settings">
+          <span class="nav-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </span>
+          <span class="nav-item-text">Settings</span>
+        </a>
+      </nav>
+
+      <!-- Sidebar Footer -->
+      <div class="sidebar-footer">
+        <div class="sidebar-status-pill">
+          <span class="status-dot-pulse"></span>
+          <span class="sidebar-footer-text">Gnani & Gemini Live</span>
+        </div>
+        <button class="collapse-btn" title="Toggle Sidebar Width (Ctrl + B)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+            <line x1="9" x2="9" y1="3" y2="21"/>
+            <path d="m14 9-3 3 3 3"/>
+          </svg>
+          <span class="sidebar-footer-text">Collapse Menu</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ======================================================================
+         Main Application Wrapper
+         ====================================================================== -->
+    <div class="main-wrapper">
+      <!-- Top Navigation Bar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <!-- Mobile Menu Hamburger -->
+          <button class="mobile-menu-btn" aria-label="Open Navigation Menu">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="4" x2="20" y1="12" y2="12"/>
+              <line x1="4" x2="20" y1="6" y2="6"/>
+              <line x1="4" x2="20" y1="18" y2="18"/>
+            </svg>
+          </button>
+
+          <!-- Breadcrumb and Page Title -->
+          <div class="breadcrumb-area">
+            <nav class="breadcrumb-nav" aria-label="Breadcrumb">
+              <span>Home</span>
+              <span class="breadcrumb-separator">/</span>
+              <span class="breadcrumb-current">Dashboard</span>
+            </nav>
+            <h1 class="page-title">Dashboard Overview</h1>
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <!-- Global Search -->
+          <div class="global-search-wrapper">
+            <svg class="search-icon-adornment" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/>
+              <path d="m21 21-4.3-4.3"/>
+            </svg>
+            <input type="text" class="global-search-input" placeholder="Search products, bills..." aria-label="Global Search">
+            <kbd class="search-shortcut-kbd">/</kbd>
+          </div>
+
+          <!-- Bilingual Language Selector Pill -->
+          <div class="language-toggle" role="group" aria-label="Select Language">
+            <button class="lang-btn active" data-lang="en">EN</button>
+            <button class="lang-btn" data-lang="ta">தமிழ்</button>
+          </div>
+
+          <!-- Notifications Button -->
+          <button class="icon-action-btn" id="btn-notifications" aria-label="View Notifications">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+              <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+            </svg>
+            <span class="notification-badge" aria-label="Unread notifications present"></span>
+          </button>
+
+          <!-- Shopkeeper Profile Summary -->
+          <div class="profile-pill">
+            <div class="profile-avatar">KR</div>
+            <div class="profile-info">
+              <span class="profile-name">Karthik R.</span>
+              <span class="profile-shop" data-i18n="shopName">Karthik Kirana Store</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Content Container -->
+      <main class="content-container">
+
+        <!-- ==================================================================
+             VIEW: DASHBOARD
+             ================================================================== -->
+        <section id="view-dashboard" class="view-pane active">
+          
+          <!-- Welcome Section Banner -->
+          <div class="dashboard-welcome-card">
+            <div class="welcome-decor-circle"></div>
+            <div class="welcome-header-content">
+              <div class="welcome-greeting-wrap">
+                <div class="welcome-title-row">
+                  <h2 class="welcome-heading" data-i18n="welcome">Vanakkam! Welcome back.</h2>
+                  <div class="ai-status-indicator">
+                    <span class="status-dot-pulse"></span>
+                    <span data-i18n="aiStatus">TamilVoice AI Ready</span>
+                  </div>
+                </div>
+                <p class="welcome-tamil-subtitle" data-i18n="welcomeSub">உங்கள் கடையின் இன்றைய நிலவரம் மற்றும் நேரடி தகவல்.</p>
+                <div class="welcome-shop-meta">
+                  <div class="meta-item">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                    <span>Karthik Kirana Store (கார்த்திக் மளிகைக் கடை)</span>
+                  </div>
+                  <div class="meta-item">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+                    <span id="current-date-display">Today</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Quick Action Buttons -->
+              <div class="welcome-actions-group">
+                <button class="btn-voice-hero" id="btn-hero-voice">
+                  <span class="hero-mic-pulse">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+                  </span>
+                  <span data-i18n="speakVoice">Speak in Tamil</span>
+                </button>
+                <button class="btn btn-secondary" id="btn-quick-new-sale">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
+                  <span>New Sale</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 5 KPI Cards per Specification -->
+          <div class="kpi-grid">
+            <!-- 1. Today's Revenue -->
+            <div class="kpi-card">
+              <div class="kpi-top-row">
+                <span class="kpi-label" data-i18n="todaysRevenue">Today's Revenue</span>
+                <div class="kpi-icon-wrapper kpi-icon-blue">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                </div>
+              </div>
+              <div class="kpi-value-row">
+                <span class="kpi-value" id="kpi-revenue">₹18,450</span>
+              </div>
+              <div class="kpi-trend-row">
+                <span class="trend-badge up">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg>
+                  +12.4%
+                </span>
+                <span class="trend-subtext">vs yesterday</span>
+              </div>
+            </div>
+
+            <!-- 2. Total Sales (Bills) -->
+            <div class="kpi-card">
+              <div class="kpi-top-row">
+                <span class="kpi-label" data-i18n="totalSales">Total Sales</span>
+                <div class="kpi-icon-wrapper kpi-icon-green">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 2v5h5"/><path d="M21 6v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10l6 6z"/><path d="M8 13h8M8 17h5"/></svg>
+                </div>
+              </div>
+              <div class="kpi-value-row">
+                <span class="kpi-value" id="kpi-sales">142</span>
+              </div>
+              <div class="kpi-trend-row">
+                <span class="trend-badge up">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg>
+                  +8.1%
+                </span>
+                <span class="trend-subtext">completed bills</span>
+              </div>
+            </div>
+
+            <!-- 3. Orders Today -->
+            <div class="kpi-card">
+              <div class="kpi-top-row">
+                <span class="kpi-label" data-i18n="ordersToday">Orders Today</span>
+                <div class="kpi-icon-wrapper kpi-icon-purple">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+                </div>
+              </div>
+              <div class="kpi-value-row">
+                <span class="kpi-value" id="kpi-orders">38</span>
+              </div>
+              <div class="kpi-trend-row">
+                <span class="trend-badge up">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg>
+                  +5.2%
+                </span>
+                <span class="trend-subtext">pre-packed orders</span>
+              </div>
+            </div>
+
+            <!-- 4. Low Stock Items -->
+            <div class="kpi-card">
+              <div class="kpi-top-row">
+                <span class="kpi-label" data-i18n="lowStockItems">Low Stock Items</span>
+                <div class="kpi-icon-wrapper kpi-icon-amber">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+                </div>
+              </div>
+              <div class="kpi-value-row">
+                <span class="kpi-value text-warning" id="kpi-low-stock">6</span>
+              </div>
+              <div class="kpi-trend-row">
+                <span class="trend-badge warning">Action Needed</span>
+                <span class="trend-subtext">re-order soon</span>
+              </div>
+            </div>
+
+            <!-- 5. Total Inventory Products -->
+            <div class="kpi-card">
+              <div class="kpi-top-row">
+                <span class="kpi-label" data-i18n="totalProducts">Total Products</span>
+                <div class="kpi-icon-wrapper kpi-icon-teal">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+                </div>
+              </div>
+              <div class="kpi-value-row">
+                <span class="kpi-value" id="kpi-products">428</span>
+              </div>
+              <div class="kpi-trend-row">
+                <span class="trend-badge neutral">12 Categories</span>
+                <span class="trend-subtext">active catalog</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Voice Assistant Teaser Callout -->
+          <div class="voice-assistant-banner">
+            <div class="voice-banner-left">
+              <div class="voice-mic-badge">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+              </div>
+              <div>
+                <div class="voice-banner-title">
+                  <span>Tamil Voice Assistant Ready</span>
+                  <span class="badge-pill info">AI Powered</span>
+                </div>
+                <div class="voice-banner-examples">
+                  Try speaking: <em>"Innaiku 10 kilo rice sales aachu"</em> or <em>"Sugar stock evlo irukku?"</em>
+                </div>
+              </div>
+            </div>
+            <button class="btn btn-primary" id="btn-banner-voice">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+              <span>Open Voice Assistant</span>
+            </button>
+          </div>
+
+          <!-- Sales Analytics & Top Products Grid -->
+          <div class="analytics-grid">
+            <!-- Sales & Revenue Chart -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title-wrap">
+                  <h3 class="card-title" data-i18n="salesAnalytics">Sales & Revenue Analytics</h3>
+                  <span class="card-subtitle">Real-time revenue trajectory across trading hours</span>
+                </div>
+                <div class="chart-header-actions">
+                  <div class="chart-tabs" role="tablist">
+                    <button class="chart-tab-btn active" data-period="daily">Daily</button>
+                    <button class="chart-tab-btn" data-period="weekly">Weekly</button>
+                    <button class="chart-tab-btn" data-period="monthly">Monthly</button>
+                  </div>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="chart-canvas-container">
+                  <canvas id="salesRevenueChart"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <!-- Top Selling Products -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title-wrap">
+                  <h3 class="card-title" data-i18n="topProducts">Top Selling Products</h3>
+                  <span class="card-subtitle">Highest volume Kirana items today</span>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="product-sales-list" id="top-products-container">
+                  <!-- Populated by dashboard.js -->
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Two-Column Grid: Low Stock Alert & Recent Sales -->
+          <div class="dashboard-tables-grid">
+            <!-- Low Stock Alerts -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title-wrap">
+                  <h3 class="card-title" data-i18n="inventoryAlerts">Low Stock Alerts</h3>
+                  <span class="card-subtitle">Critical products requiring distributor order</span>
+                </div>
+                <a href="#inventory" class="btn btn-xs btn-outline" data-view="inventory" data-i18n="viewAll">View All</a>
+              </div>
+              <div class="table-wrapper" style="border: none; border-radius: 0;">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Product</th>
+                      <th>Current</th>
+                      <th>Min Level</th>
+                      <th>Status</th>
+                      <th style="text-align: right;">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="low-stock-table-body">
+                    <!-- Populated by dashboard.js -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Recent Transactions -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title-wrap">
+                  <h3 class="card-title" data-i18n="recentTransactions">Recent Transactions</h3>
+                  <span class="card-subtitle">Latest counter invoices and sales</span>
+                </div>
+                <a href="#sales" class="btn btn-xs btn-outline" data-view="sales" data-i18n="viewAll">View All</a>
+              </div>
+              <div class="table-wrapper" style="border: none; border-radius: 0;">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Bill #</th>
+                      <th>Items Purchased</th>
+                      <th>Amount</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="recent-sales-table-body">
+                    <!-- Populated by dashboard.js -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ==================================================================
+             PLACEHOLDER VIEWS FOR SUBSEQUENT PHASES
+             ================================================================== -->
+        <section id="view-voice" class="view-pane">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title-wrap">
+                <h2 class="card-title">Tamil Voice Assistant (தமிழ் வாய்ஸ் அசிஸ்டண்ட்)</h2>
+                <span class="card-subtitle">Phase 3: Real-time Gnani STT & TTS speech engine with Gemini reasoning</span>
+              </div>
+            </div>
+            <div class="card-body" style="padding: 3rem; text-align: center;">
+              <div style="width: 72px; height: 72px; border-radius: 50%; background: #EFF6FF; color: var(--color-primary); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+              </div>
+              <h3 style="font-size: 1.25rem; margin-bottom: 0.5rem;">Voice Assistant Interface Ready for Phase 3</h3>
+              <p style="max-width: 480px; margin: 0 auto 1.5rem; color: var(--color-text-secondary);">
+                The dedicated voice assistant layout with 7 states (Idle, Listening, Processing, Confirmation, Executing, Success, Error) will be implemented in Phase 3.
+              </p>
+              <button class="btn btn-primary" onclick="window.location.hash='dashboard'">Return to Dashboard</button>
+            </div>
+          </div>
+        </section>
+
+        <section id="view-inventory" class="view-pane">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title-wrap">
+                <h2 class="card-title">Inventory Management (சரக்கு இருப்பு மேலாண்மை)</h2>
+                <span class="card-subtitle">Phase 4: Full product catalogue, categories, stock adjustments & units</span>
+              </div>
+            </div>
+            <div class="card-body" style="padding: 3rem; text-align: center;">
+              <p style="color: var(--color-text-secondary); margin-bottom: 1.5rem;">
+                Comprehensive inventory management page with 8 Kirana categories and 7 units will be developed in Phase 4.
+              </p>
+              <button class="btn btn-primary" onclick="window.location.hash='dashboard'">Return to Dashboard</button>
+            </div>
+          </div>
+        </section>
+
+        <section id="view-sales" class="view-pane">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title-wrap">
+                <h2 class="card-title">Sales & Billing Records (விற்பனை மற்றும் பில்கள்)</h2>
+                <span class="card-subtitle">Phase 5: Counter POS, printable receipts, and billing history</span>
+              </div>
+            </div>
+            <div class="card-body" style="padding: 3rem; text-align: center;">
+              <p style="color: var(--color-text-secondary); margin-bottom: 1.5rem;">
+                Sales billing register with receipt generation and filtering will be developed in Phase 5.
+              </p>
+              <button class="btn btn-primary" onclick="window.location.hash='dashboard'">Return to Dashboard</button>
+            </div>
+          </div>
+        </section>
+
+        <section id="view-reports" class="view-pane">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title-wrap">
+                <h2 class="card-title">Reports & Analytics (வணிக அறிக்கைகள்)</h2>
+                <span class="card-subtitle">Phase 6: Revenue, profit margin estimation, and CSV exports</span>
+              </div>
+            </div>
+            <div class="card-body" style="padding: 3rem; text-align: center;">
+              <p style="color: var(--color-text-secondary); margin-bottom: 1.5rem;">
+                Advanced business reporting and CSV export capabilities will be developed in Phase 6.
+              </p>
+              <button class="btn btn-primary" onclick="window.location.hash='dashboard'">Return to Dashboard</button>
+            </div>
+          </div>
+        </section>
+
+        <section id="view-customers" class="view-pane">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title-wrap">
+                <h2 class="card-title">Customer Khata (கடன் கணக்கு புத்தகம்)</h2>
+                <span class="card-subtitle">Customer credit ledger, voice-logged payments and reconciliation</span>
+              </div>
+            </div>
+            <div class="card-body" style="padding: 3rem; text-align: center;">
+              <p style="color: var(--color-text-secondary); margin-bottom: 1.5rem;">
+                Customer credit and udhaar khata ledger management.
+              </p>
+              <button class="btn btn-primary" onclick="window.location.hash='dashboard'">Return to Dashboard</button>
+            </div>
+          </div>
+        </section>
+
+        <section id="view-settings" class="view-pane">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title-wrap">
+                <h2 class="card-title">Store & Assistant Settings (அமைப்புகள்)</h2>
+                <span class="card-subtitle">Shop profile, printer preferences, and API configuration</span>
+              </div>
+            </div>
+            <div class="card-body" style="padding: 3rem; text-align: center;">
+              <p style="color: var(--color-text-secondary); margin-bottom: 1.5rem;">
+                Settings and backend endpoint configuration.
+              </p>
+              <button class="btn btn-primary" onclick="window.location.hash='dashboard'">Return to Dashboard</button>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Mobile Touch Bottom Navigation (Phones) -->
+  <nav class="mobile-bottom-nav" aria-label="Mobile Navigation">
+    <a href="#dashboard" class="mobile-nav-item active" data-view="dashboard">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+      <span>Dashboard</span>
+    </a>
+    <a href="#inventory" class="mobile-nav-item" data-view="inventory">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/></svg>
+      <span>Inventory</span>
+    </a>
+    <a href="#voice" class="mobile-nav-item" data-view="voice">
+      <div class="mobile-nav-voice-btn">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+      </div>
+      <span>Voice</span>
+    </a>
+    <a href="#sales" class="mobile-nav-item" data-view="sales">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+      <span>Sales</span>
+    </a>
+    <a href="#reports" class="mobile-nav-item" data-view="reports">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+      <span>Reports</span>
+    </a>
+  </nav>
+
+  <!-- Global Accessible Toast Notification Container -->
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <!-- Main ES6 JavaScript Entry Point -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

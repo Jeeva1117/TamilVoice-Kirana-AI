@@ -112,7 +112,13 @@ export const App = {
   }
 };
 
-// Auto-run when DOM is fully loaded
-document.addEventListener('DOMContentLoaded', () => {
-  App.init();
-});
+// Auto-run when DOM is fully loaded in browser
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      App.init();
+    });
+  } else {
+    App.init();
+  }
+}
