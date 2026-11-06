@@ -704,3 +704,4 @@ export const VoiceAssistant = {
     Utils.showToast('info', 'History Cleared', 'Voice command history cleared.');
   }
 };
+

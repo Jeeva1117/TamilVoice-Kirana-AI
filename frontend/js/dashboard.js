@@ -4,6 +4,7 @@
  */
 
 import { Utils } from './utils.js';
+import { ApiService } from './api.js';
 
 export const Dashboard = {
   chartInstance: null,
@@ -68,6 +69,7 @@ export const Dashboard = {
     this.renderTopProducts();
     this.bindChartControls();
     this.updateClockAndDate();
+    this.fetchLiveDashboardData();
 
     // Re-render when language toggle occurs
     window.addEventListener('language-changed', () => {
@@ -76,6 +78,42 @@ export const Dashboard = {
       this.renderTopProducts();
       this.updateChartData();
     });
+  },
+
+  async fetchLiveDashboardData() {
+    try {
+      const liveData = await ApiService.getDashboard();
+      if (liveData && liveData.kpis) {
+        this.data = { ...this.data, ...liveData };
+        this.renderKPIs();
+        this.updateChartData();
+        this.renderLowStock();
+        this.renderRecentTransactions();
+        this.renderTopProducts();
+
+        // Update Demo Notice banner if backend is live
+        const demoBanner = document.querySelector('.demo-mode-alert');
+        if (demoBanner) {
+          demoBanner.innerHTML = `
+            <div class="demo-mode-content">
+              <span class="badge-pill success" style="font-weight: 700;">BACKEND LIVE</span>
+              <span class="demo-mode-text">
+                <strong>Connected:</strong> FastAPI + SQLite Database active at <a href="http://localhost:8000/docs" target="_blank" style="text-decoration: underline; color: #166534;">http://localhost:8000</a>.
+              </span>
+            </div>
+            <div class="demo-mode-actions">
+              <span class="demo-tag" style="background: #DCFCE7; color: #15803D; border-color: #86EFAC;">SQLite DB Synced</span>
+            </div>
+          `;
+          demoBanner.style.backgroundColor = '#F0FDF4';
+          demoBanner.style.borderColor = '#BBF7D0';
+          demoBanner.style.color = '#166534';
+        }
+      }
+    } catch (err) {
+      // Backend not running or still starting - keep realistic demo data
+      console.log('[Dashboard] Running with mock data (backend offline or loading).');
+    }
   },
 
   updateClockAndDate() {
