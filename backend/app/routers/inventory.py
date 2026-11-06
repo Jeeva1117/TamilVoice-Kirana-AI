@@ -79,3 +79,4 @@ def remove_product(product_id: int, db: Session = Depends(get_db)):
     """Soft delete a product from active inventory."""
     inventory_service.delete_product(db, product_id)
     return {"success": True, "message": f"Product {product_id} deleted successfully."}
+

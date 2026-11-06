@@ -5,6 +5,8 @@
  */
 
 import { Utils } from './utils.js';
+import { ApiService, API_CONFIG } from './api.js';
+import { Store } from './store.js';
 
 export const VoiceAssistant = {
   // 7 Voice States
@@ -210,7 +212,7 @@ export const VoiceAssistant = {
         if (isReadonly) {
           this.transcriptTextarea.removeAttribute('readonly');
           this.transcriptTextarea.focus();
-          this.editTranscriptBtn.textContent = 'Save';
+          this.editTranscriptBtn.textContent = 'Interpret';
           this.editTranscriptBtn.classList.add('btn-primary');
           this.editTranscriptBtn.classList.remove('btn-outline');
         } else {
@@ -218,7 +220,10 @@ export const VoiceAssistant = {
           this.editTranscriptBtn.textContent = 'Edit';
           this.editTranscriptBtn.classList.remove('btn-primary');
           this.editTranscriptBtn.classList.add('btn-outline');
-          Utils.showToast('info', 'Transcript Updated', 'AI entity interpretation refreshed.');
+          const customText = this.transcriptTextarea.value.trim();
+          if (customText) {
+            this.executeCommandWorkflow(customText, false);
+          }
         }
       });
     }
@@ -440,61 +445,149 @@ export const VoiceAssistant = {
   /**
    * Execute Command Workflow with Transcript & Intent Extraction
    */
-  executeCommandWorkflow(cmd, fromMic = false) {
+  async executeCommandWorkflow(cmd, fromMic = false) {
     this.setState(this.STATES.PROCESSING);
 
-    setTimeout(() => {
-      // Populate Transcript
-      if (this.transcriptTextarea) {
-        this.transcriptTextarea.value = cmd.command;
+    const commandText = typeof cmd === 'string' ? cmd : (cmd.command || '');
+
+    if (this.transcriptTextarea) {
+      this.transcriptTextarea.value = commandText;
+    }
+
+    // Attempt Gemini AI backend integration
+    let handledByAI = false;
+    try {
+      const aiResponse = await ApiService.interpretCommand(commandText);
+      if (aiResponse && aiResponse.success) {
+        this.applyAIInterpretation(aiResponse, commandText);
+        handledByAI = true;
       }
+    } catch (err) {
+      console.warn('[VoiceAssistant] Gemini AI unconfigured or offline, falling back to demo mode:', err.message);
+    }
 
-      // Populate Extracted AI Entities
-      if (this.actionVal) this.actionVal.textContent = cmd.action;
-      if (this.productVal) this.productVal.textContent = cmd.product;
-      if (this.qtyVal) this.qtyVal.textContent = cmd.quantity ? `${cmd.quantity} ${cmd.unit}` : 'N/A';
-      if (this.confidenceVal) this.confidenceVal.textContent = '98.5% (High)';
+    if (!handledByAI) {
+      // Demo Fallback
+      setTimeout(() => {
+        const demoCmd = typeof cmd === 'object' ? cmd : this.demoCommands[0];
+        this.applyDemoInterpretation(demoCmd, fromMic);
+      }, 700);
+    }
+  },
 
-      this.currentAction = { ...cmd };
+  applyAIInterpretation(res, commandText) {
+    const intent = res.intent;
+    const resolved = res.resolved_product;
 
-      // Populate Responses
-      this.updateResponseText(cmd);
+    if (this.actionVal) this.actionVal.textContent = intent.intent;
+    if (this.productVal) this.productVal.textContent = resolved ? resolved.name : (intent.entities.product_name || 'N/A');
+    if (this.qtyVal) this.qtyVal.textContent = intent.entities.quantity ? `${intent.entities.quantity} ${intent.entities.unit || ''}` : 'N/A';
+    if (this.confidenceVal) this.confidenceVal.textContent = `${Math.round((intent.confidence || 0.95) * 100)}% (Gemini AI)`;
 
-      // Check Confirmation Rule: NEVER auto-execute stock or sales
-      if (cmd.requiresConfirmation) {
-        this.setState(this.STATES.CONFIRMATION);
-        if (this.confirmationSummary) {
-          this.confirmationSummary.textContent = `Action: ${cmd.action} | Product: ${cmd.product} | Quantity: ${cmd.quantity} ${cmd.unit}`;
-        }
-        Utils.showToast('warning', 'Confirmation Required', `Please confirm before performing "${cmd.action}".`);
-      } else {
-        // Direct Query response
-        this.setState(this.STATES.SUCCESS, `Done! ${cmd.action} query answered.`);
-        this.addToHistory(cmd.command, cmd.action, 'Completed');
+    // Update assistant response bubble
+    if (this.responseBubble) {
+      this.responseBubble.textContent = res.message_ta || res.message;
+    }
+
+    // Clarification required
+    if (intent.requires_clarification) {
+      this.setState(this.STATES.IDLE, res.message);
+      Utils.showToast('warning', 'Clarification Needed', res.message, 6000);
+      return;
+    }
+
+    // Confirmation workflow
+    if (res.requires_confirmation && res.confirmation_preview) {
+      const p = res.confirmation_preview;
+      this.currentAction = {
+        actionId: p.action_id,
+        action: p.action,
+        product: p.product_name,
+        quantity: p.quantity,
+        unit: p.unit,
+        currentStock: p.current_stock,
+        projectedStock: p.projected_stock,
+        estimatedTotal: p.estimated_total,
+        command: commandText,
+        responseTa: res.message_ta || res.message,
+        responseEn: res.message
+      };
+
+      this.setState(this.STATES.CONFIRMATION);
+      if (this.confirmationSummary) {
+        let details = `Action: ${p.action} | Product: ${p.product_name} | Quantity: ${p.quantity} ${p.unit} | Stock: ${p.current_stock} -> ${p.projected_stock} ${p.unit}`;
+        if (p.estimated_total) details += ` | Total: ₹${p.estimated_total}`;
+        this.confirmationSummary.textContent = details;
       }
+      Utils.showToast('warning', 'Confirmation Required', `Please review and confirm: ${p.action} for ${p.product_name}.`);
+    } else {
+      // Direct inquiry result
+      this.setState(this.STATES.SUCCESS, res.message);
+      this.addToHistory(commandText, intent.intent, 'Answered');
+      this.speakResponse();
+    }
+  },
 
-      if (fromMic) {
-        Utils.showToast('info', 'Demo Notice', 'Audio processed in demo mode. Voice AI backend integration in next phase.');
+  applyDemoInterpretation(cmd, fromMic) {
+    if (this.actionVal) this.actionVal.textContent = cmd.action;
+    if (this.productVal) this.productVal.textContent = cmd.product;
+    if (this.qtyVal) this.qtyVal.textContent = cmd.quantity ? `${cmd.quantity} ${cmd.unit}` : 'N/A';
+    if (this.confidenceVal) this.confidenceVal.textContent = '98.5% (Demo)';
+
+    this.currentAction = { ...cmd };
+    this.updateResponseText(cmd);
+
+    if (cmd.requiresConfirmation) {
+      this.setState(this.STATES.CONFIRMATION);
+      if (this.confirmationSummary) {
+        this.confirmationSummary.textContent = `Action: ${cmd.action} | Product: ${cmd.product} | Quantity: ${cmd.quantity} ${cmd.unit}`;
       }
-    }, 900);
+      Utils.showToast('warning', 'Confirmation Required', `Please confirm before performing "${cmd.action}".`);
+    } else {
+      this.setState(this.STATES.SUCCESS, `Done! ${cmd.action} query answered.`);
+      this.addToHistory(cmd.command, cmd.action, 'Completed');
+    }
+
+    if (fromMic) {
+      Utils.showToast('info', 'Demo Notice', 'Audio processed in demo mode. Configure GEMINI_API_KEY for live AI reasoning.');
+    }
   },
 
   /**
    * User Confirms the Action
    */
-  confirmPendingAction() {
+  async confirmPendingAction() {
     if (!this.currentAction) return;
 
     this.setState(this.STATES.EXECUTING);
 
+    if (this.currentAction.actionId) {
+      try {
+        const confirmRes = await ApiService.confirmAction(this.currentAction.actionId);
+        if (confirmRes && confirmRes.success) {
+          this.setState(this.STATES.SUCCESS, confirmRes.message);
+          this.addToHistory(this.currentAction.command, confirmRes.action, 'Confirmed (Live DB)');
+          Utils.showToast('success', 'Action Executed', confirmRes.message, 5000);
+
+          // Dispatch global store update event so Inventory table and Dashboard refresh automatically!
+          window.dispatchEvent(new CustomEvent('store-updated', { detail: { action: confirmRes.action } }));
+          this.speakResponse();
+          return;
+        }
+      } catch (err) {
+        this.setState(this.STATES.ERROR, err.message);
+        Utils.showToast('error', 'Execution Failed', err.message, 6000);
+        return;
+      }
+    }
+
+    // Demo Mode Confirmation Fallback
     setTimeout(() => {
       this.setState(this.STATES.SUCCESS, `Success! ${this.currentAction.action} for ${this.currentAction.product} confirmed (Demo).`);
-      this.addToHistory(this.currentAction.command, this.currentAction.action, 'Confirmed');
+      this.addToHistory(this.currentAction.command, this.currentAction.action, 'Confirmed (Demo)');
       Utils.showToast('success', 'Action Confirmed', `${this.currentAction.action} completed successfully in demo mode.`);
-      
-      // Auto-speak confirmation in Tamil if TTS is enabled
       this.speakResponse();
-    }, 1100);
+    }, 900);
   },
 
   /**
@@ -543,10 +636,17 @@ export const VoiceAssistant = {
   /**
    * User Cancels Action
    */
-  cancelPendingAction() {
+  async cancelPendingAction() {
+    if (this.currentAction?.actionId) {
+      try {
+        await ApiService.cancelAction(this.currentAction.actionId);
+      } catch (e) {
+        console.warn('Cancel action warning:', e.message);
+      }
+    }
     this.currentAction = null;
     this.setState(this.STATES.IDLE, 'Action was cancelled by user. Returning to ready state.');
-    Utils.showToast('info', 'Cancelled', 'Pending action was cancelled.');
+    Utils.showToast('info', 'Cancelled', 'Pending action was cancelled. No changes made.');
   },
 
   /**

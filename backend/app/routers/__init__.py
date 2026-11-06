@@ -7,6 +7,7 @@ from backend.app.routers.customers import router as customers_router
 from backend.app.routers.dashboard import router as dashboard_router
 from backend.app.routers.reports import router as reports_router
 from backend.app.routers.voice import router as voice_router
+from backend.app.routers.ai import router as ai_router
 
 __all__ = [
     "health_router",
@@ -17,4 +18,5 @@ __all__ = [
     "dashboard_router",
     "reports_router",
     "voice_router",
+    "ai_router",
 ]

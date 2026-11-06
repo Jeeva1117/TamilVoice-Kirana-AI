@@ -19,3 +19,4 @@ class SaleItem(Base):
     # Relationships
     sale = relationship("Sale", back_populates="items")
     product = relationship("Product", back_populates="sale_items")
+

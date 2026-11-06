@@ -30,3 +30,4 @@ def generate_transaction_id() -> str:
     date_str = get_ist_now().strftime("%Y%m%d")
     random_suffix = "".join(random.choices(string.ascii_uppercase + string.digits, k=4))
     return f"TXN-{date_str}-{random_suffix}"
+

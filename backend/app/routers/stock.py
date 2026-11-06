@@ -50,3 +50,4 @@ def get_all_movements_history(
 ):
     """Retrieve all recent inventory movements across all products."""
     return stock_service.get_all_movements(db=db, limit=limit)
+

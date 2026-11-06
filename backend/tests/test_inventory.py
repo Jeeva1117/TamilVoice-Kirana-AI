@@ -109,3 +109,4 @@ def test_list_categories(client, sample_product):
     cats = response.json()
     assert isinstance(cats, list)
     assert sample_product.category in cats
+

@@ -48,3 +48,4 @@ class StockMovementResponse(BaseModel):
 class StockMovementListResponse(BaseModel):
     items: List[StockMovementResponse]
     total: int
+

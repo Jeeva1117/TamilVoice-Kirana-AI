@@ -136,3 +136,4 @@ def get_inventory_valuation(db: Session) -> InventoryValuationResponse:
         potential_profit=round(total_retail - total_cost, 2),
         category_summary=category_summary
     )
+

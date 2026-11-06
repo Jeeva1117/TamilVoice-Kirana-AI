@@ -21,3 +21,4 @@ def get_dashboard_data(db: Session = Depends(get_db)):
     - Hourly sales breakdown
     """
     return dashboard_service.get_dashboard_summary(db=db)
+

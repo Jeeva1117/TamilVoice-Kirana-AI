@@ -74,3 +74,4 @@ def test_stock_movement_history(client, sample_product):
     assert len(movements) >= 1
     assert movements[0]["movement_type"] == "ADJUSTMENT_ADD"
     assert movements[0]["quantity"] == 15.0
+

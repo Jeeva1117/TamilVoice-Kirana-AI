@@ -12,3 +12,4 @@ def test_health_check(client):
     assert data["service"] == "TamilVoice Kirana AI"
     assert data["timezone"] == "Asia/Kolkata"
     assert "timestamp" in data
+

@@ -139,3 +139,4 @@ def test_get_sales_list_and_detail(client, sample_product):
     assert detail_res.status_code == status.HTTP_200_OK
     assert detail_res.json()["id"] == sale_id
     assert detail_res.json()["payment_method"] == "UPI"
+

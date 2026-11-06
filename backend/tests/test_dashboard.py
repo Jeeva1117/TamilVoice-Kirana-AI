@@ -31,3 +31,4 @@ def test_get_dashboard_metrics(client, sample_product):
     assert isinstance(data["recent_activities"], list)
     assert isinstance(data["sales_by_category"], dict)
     assert isinstance(data["hourly_sales"], list)
+

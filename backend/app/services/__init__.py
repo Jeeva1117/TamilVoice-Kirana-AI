@@ -27,6 +27,21 @@ from backend.app.services.reports_service import (
     get_products_report,
     get_inventory_valuation,
 )
+from backend.app.services.product_resolver import (
+    resolve_product,
+    ResolutionStatus,
+)
+from backend.app.services.gemini_client import (
+    gemini_client,
+    GeminiError,
+    GeminiNotConfiguredError,
+)
+from backend.app.services.ai_service import (
+    interpret_user_command,
+    confirm_pending_action,
+    cancel_pending_action,
+    pending_store,
+)
 
 __all__ = [
     "get_products",
@@ -47,4 +62,13 @@ __all__ = [
     "get_daily_report",
     "get_products_report",
     "get_inventory_valuation",
+    "resolve_product",
+    "ResolutionStatus",
+    "gemini_client",
+    "GeminiError",
+    "GeminiNotConfiguredError",
+    "interpret_user_command",
+    "confirm_pending_action",
+    "cancel_pending_action",
+    "pending_store",
 ]

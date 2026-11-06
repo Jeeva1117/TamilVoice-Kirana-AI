@@ -197,4 +197,32 @@ export class ApiService {
   static async getInventoryValuationReport() {
     return this.request('/reports/inventory', { method: 'GET' });
   }
+
+  /* =========================================================================
+     Phase 5: Gemini AI Intelligence Endpoints
+     ========================================================================= */
+  static async getAIStatus() {
+    return this.request('/ai/status', { method: 'GET' });
+  }
+
+  static async interpretCommand(text) {
+    return this.request('/ai/interpret', {
+      method: 'POST',
+      body: JSON.stringify({ text }),
+    });
+  }
+
+  static async confirmAction(actionId) {
+    return this.request('/ai/confirm', {
+      method: 'POST',
+      body: JSON.stringify({ action_id: actionId }),
+    });
+  }
+
+  static async cancelAction(actionId) {
+    return this.request('/ai/cancel', {
+      method: 'POST',
+      body: JSON.stringify({ action_id: actionId }),
+    });
+  }
 }

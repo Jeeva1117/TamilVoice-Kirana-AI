@@ -67,3 +67,4 @@ def get_sale(sale_id: int, db: Session = Depends(get_db)):
 def get_sale_by_tx_id(transaction_id: str, db: Session = Depends(get_db)):
     """Retrieve sale by transaction code (e.g. TXN-20261106-ABCD)."""
     return sales_service.get_sale_by_transaction_id(db=db, transaction_id=transaction_id)
+

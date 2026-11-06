@@ -41,3 +41,4 @@ class DashboardResponse(BaseModel):
     recent_activities: List[RecentActivityItem]
     sales_by_category: Dict[str, float]
     hourly_sales: List[HourlySalesPoint]
+

@@ -41,6 +41,20 @@ from backend.app.schemas.reports import (
     ProductPerformanceItem,
     InventoryValuationResponse,
 )
+from backend.app.schemas.ai import (
+    IntentCategory,
+    CommandEntities,
+    CommandIntent,
+    ResolvedProduct,
+    ConfirmationPreview,
+    InterpretRequest,
+    InterpretResponse,
+    ConfirmActionRequest,
+    ConfirmActionResponse,
+    CancelActionRequest,
+    CancelActionResponse,
+    AIStatusResponse,
+)
 
 __all__ = [
     "ProductBase",
@@ -73,4 +87,17 @@ __all__ = [
     "CategoryPerformance",
     "ProductPerformanceItem",
     "InventoryValuationResponse",
+    "IntentCategory",
+    "CommandEntities",
+    "CommandIntent",
+    "ResolvedProduct",
+    "ConfirmationPreview",
+    "InterpretRequest",
+    "InterpretResponse",
+    "ConfirmActionRequest",
+    "ConfirmActionResponse",
+    "CancelActionRequest",
+    "CancelActionResponse",
+    "AIStatusResponse",
 ]
+

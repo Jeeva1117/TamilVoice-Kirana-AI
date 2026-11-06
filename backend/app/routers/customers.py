@@ -89,3 +89,4 @@ def delete_customer(customer_id: int, db: Session = Depends(get_db)):
     db.delete(customer)
     db.commit()
     return {"success": True, "message": f"Customer {customer_id} deleted."}
+

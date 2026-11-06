@@ -33,3 +33,4 @@ class CustomerResponse(CustomerBase):
 class CustomerListResponse(BaseModel):
     items: List[CustomerResponse]
     total: int
+

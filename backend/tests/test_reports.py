@@ -35,3 +35,4 @@ def test_inventory_valuation_report(client, sample_product):
     assert "total_retail_value" in data
     assert "potential_profit" in data
     assert "category_summary" in data
+

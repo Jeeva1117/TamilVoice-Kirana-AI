@@ -189,3 +189,4 @@ def get_dashboard_summary(db: Session) -> DashboardResponse:
         sales_by_category=sales_by_category,
         hourly_sales=hourly_sales,
     )
+

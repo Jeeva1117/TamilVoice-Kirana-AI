@@ -181,3 +181,4 @@ def get_categories(db: Session) -> List[str]:
         .all()
     )
     return [c[0] for c in categories if c[0]]
+

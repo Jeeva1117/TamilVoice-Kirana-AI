@@ -40,3 +40,4 @@ def get_product_sales_report(db: Session = Depends(get_db)):
 def get_inventory_valuation_report(db: Session = Depends(get_db)):
     """Retrieve complete inventory valuation, cost vs retail, and margin projections."""
     return reports_service.get_inventory_valuation(db=db)
+
