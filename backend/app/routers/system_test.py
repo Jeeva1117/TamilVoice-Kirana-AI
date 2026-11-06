@@ -85,6 +85,19 @@ def get_test_environment_status(db: Session = Depends(get_db)):
     }
 
 
+@router.post("/seed-shopkeeper")
+def seed_shopkeeper_endpoint(db: Session = Depends(get_db)):
+    """Seeds the 5 Phase 3 controlled demo products into test database."""
+    from backend.app.database_seeder import seed_shopkeeper_controlled_demo
+    seed_shopkeeper_controlled_demo(db)
+    prods = db.query(Product).filter(Product.is_active == True).all()
+    return {
+        "status": "success",
+        "message": "Seeded Phase 3 shopkeeper demo products into SQLite test database",
+        "products": [{"name": p.name, "stock": p.quantity, "unit": p.unit, "price": p.selling_price} for p in prods[:10]]
+    }
+
+
 def _ensure_controlled_products(db: Session) -> tuple:
     rice = db.query(Product).filter(Product.name.ilike("%rice%")).first()
     if not rice:

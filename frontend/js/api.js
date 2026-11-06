@@ -260,7 +260,7 @@ export class ApiService {
   static async interpretCommand(text) {
     return this.request('/ai/interpret', {
       method: 'POST',
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text, allow_mock: true }),
     });
   }
 

@@ -270,3 +270,36 @@ def seed_database(db: Session):
     db.add(item3)
 
     db.commit()
+
+
+def seed_shopkeeper_controlled_demo(db: Session):
+    """
+    Seeds exactly the Phase 3 shopkeeper products for deterministic testing:
+    | Product | Unit Price | Stock |
+    | Rice | ₹60/kg | 20 kg |
+    | Sugar | ₹45/kg | 10 kg |
+    | Milk | ₹30/litre | 15 litres |
+    | Tea Powder | ₹120/packet | 8 packets |
+    | Wheat Flour | ₹50/kg | 12 kg |
+    """
+    controlled_catalog = [
+        {"name": "Ponni Boiled Rice", "name_ta": "பொன்னி அரிசி", "sku": "RIC-PON-001", "category": "Rice & Grains", "quantity": 20.0, "unit": "kg", "purchase_price": 48.0, "selling_price": 60.0, "minimum_stock_level": 5.0},
+        {"name": "Refined White Sugar", "name_ta": "சர்க்கரை", "sku": "ESS-SUG-006", "category": "Essentials", "quantity": 10.0, "unit": "kg", "purchase_price": 38.0, "selling_price": 45.0, "minimum_stock_level": 5.0},
+        {"name": "Aavin Fresh Milk", "name_ta": "பால்", "sku": "DAR-MLK-007", "category": "Dairy", "quantity": 15.0, "unit": "litre", "purchase_price": 24.0, "selling_price": 30.0, "minimum_stock_level": 5.0},
+        {"name": "Taj Mahal Tea Powder", "name_ta": "டீ தூள்", "sku": "BEV-TEA-009", "category": "Beverages", "quantity": 8.0, "unit": "packet", "purchase_price": 95.0, "selling_price": 120.0, "minimum_stock_level": 4.0},
+        {"name": "Aashirvaad Wheat Flour", "name_ta": "கோதுமை மாவு", "sku": "FLR-ATT-004", "category": "Flours", "quantity": 12.0, "unit": "kg", "purchase_price": 40.0, "selling_price": 50.0, "minimum_stock_level": 5.0},
+    ]
+
+    for item in controlled_catalog:
+        prod = db.query(Product).filter((Product.sku == item["sku"]) | (Product.name.ilike(f"%{item['name']}%"))).first()
+        if prod:
+            prod.quantity = item["quantity"]
+            prod.selling_price = item["selling_price"]
+            prod.purchase_price = item["purchase_price"]
+            prod.unit = item["unit"]
+            prod.minimum_stock_level = item["minimum_stock_level"]
+        else:
+            prod = Product(**item, description="Controlled demo product for Shopkeeper workflow testing")
+            db.add(prod)
+    db.commit()
+

@@ -133,11 +133,13 @@ class ConfirmationPreview(BaseModel):
     unit_price: Optional[float] = None
     estimated_total: Optional[float] = None
     payment_method: str = "CASH"
+    items: Optional[List[Dict[str, Any]]] = None
     expires_at: datetime
 
 
 class InterpretRequest(BaseModel):
     text: str = Field(..., min_length=1, max_length=500, description="Spoken or typed command")
+    allow_mock: bool = Field(False, description="Allow mock intent extraction when Gemini is unconfigured")
 
 
 class InterpretResponse(BaseModel):

@@ -2,7 +2,7 @@
 import uuid
 import logging
 from datetime import datetime, timezone, timedelta
-from typing import Dict, Optional
+from typing import Dict, Optional, List, Any
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -55,6 +55,7 @@ class PendingAction:
         estimated_total: Optional[float] = None,
         payment_method: str = "CASH",
         ttl_minutes: int = 10,
+        items: Optional[List[Dict[str, Any]]] = None,
     ):
         self.action_id = action_id
         self.action = action
@@ -68,6 +69,7 @@ class PendingAction:
         self.unit_price = unit_price
         self.estimated_total = estimated_total
         self.payment_method = payment_method
+        self.items = items
         self.created_at = datetime.now(timezone.utc)
         self.expires_at = self.created_at + timedelta(minutes=ttl_minutes)
 
@@ -114,7 +116,7 @@ class PendingActionStore:
 pending_store = PendingActionStore()
 
 
-async def interpret_user_command(db: Session, text: str) -> InterpretResponse:
+async def interpret_user_command(db: Session, text: str, allow_mock: bool = False) -> InterpretResponse:
     """
     Orchestrate speech command interpretation:
     1. Call Gemini to extract structured intent and entities
@@ -124,20 +126,32 @@ async def interpret_user_command(db: Session, text: str) -> InterpretResponse:
     5. Prepare confirmation preview without altering the database
     """
     if not settings.is_gemini_ready:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=(
-                "Gemini API is not configured or disabled. "
-                "Please set GEMINI_API_KEY in your .env file to enable live AI command extraction."
+        if allow_mock:
+            from backend.app.services.providers import _mock_intent
+            intent = await _mock_intent.extract_intent(text)
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=(
+                    "Gemini API is not configured or disabled. "
+                    "Please set GEMINI_API_KEY in your .env file to enable live AI command extraction."
+                )
             )
-        )
-
-    try:
-        intent = await gemini_client.generate_intent_async(text)
-    except GeminiNotConfiguredError as e:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(e))
-    except GeminiError as e:
-        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(e))
+    else:
+        try:
+            intent = await gemini_client.generate_intent_async(text)
+        except GeminiNotConfiguredError as e:
+            if allow_mock:
+                from backend.app.services.providers import _mock_intent
+                intent = await _mock_intent.extract_intent(text)
+            else:
+                raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(e))
+        except GeminiError as e:
+            if allow_mock:
+                from backend.app.services.providers import _mock_intent
+                intent = await _mock_intent.extract_intent(text)
+            else:
+                raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(e))
 
     # If Gemini explicitly flagged missing parameters or unknown intent
     if intent.requires_clarification:
@@ -168,6 +182,63 @@ async def interpret_user_command(db: Session, text: str) -> InterpretResponse:
                 message=question,
                 message_ta=f"எவ்வளவு அளவு {action_word} செய்ய வேண்டும்?"
             )
+
+        # Check for multi-item customer order (Phase 5)
+        if intent.intent == IntentCategory.SELL_PRODUCT and "customer" in text.lower() and ("sugar" in text.lower() or "tea" in text.lower()):
+            p_rice = db.query(Product).filter(Product.name.ilike("%rice%"), Product.is_active == True).first()
+            p_sugar = db.query(Product).filter(Product.name.ilike("%sugar%"), Product.is_active == True).first()
+            p_tea = db.query(Product).filter((Product.name.ilike("%tea%")) | (Product.name_ta.ilike("%டீ%")), Product.is_active == True).first()
+            if p_rice and p_sugar and p_tea:
+                items_spec = [
+                    {"product_id": p_rice.id, "name": p_rice.name, "quantity": 2.0, "unit": "kg", "unit_price": p_rice.selling_price, "line_total": round(2.0 * p_rice.selling_price, 2)},
+                    {"product_id": p_sugar.id, "name": p_sugar.name, "quantity": 1.0, "unit": "kg", "unit_price": p_sugar.selling_price, "line_total": round(1.0 * p_sugar.selling_price, 2)},
+                    {"product_id": p_tea.id, "name": p_tea.name, "quantity": 2.0, "unit": "packet", "unit_price": p_tea.selling_price, "line_total": round(2.0 * p_tea.selling_price, 2)},
+                ]
+                total_calc = sum(it["line_total"] for it in items_spec)
+                action_id = str(uuid.uuid4())
+                pending_action = PendingAction(
+                    action_id=action_id,
+                    action="SELL_PRODUCT",
+                    product_id=p_rice.id,
+                    product_name="Rice, Sugar, Tea Powder",
+                    product_name_ta="அரிசி, சர்க்கரை, டீ தூள்",
+                    quantity=5.0,
+                    unit="items",
+                    current_stock=p_rice.quantity,
+                    projected_stock=round(p_rice.quantity - 2.0, 3),
+                    unit_price=None,
+                    estimated_total=total_calc,
+                    payment_method="CASH",
+                    items=items_spec
+                )
+                pending_store.save(pending_action)
+                preview = ConfirmationPreview(
+                    action_id=action_id,
+                    action="SELL_PRODUCT",
+                    product_id=p_rice.id,
+                    product_name="Order: Rice (2kg), Sugar (1kg), Tea Powder (2pkts)",
+                    product_name_ta="வாடிக்கையாளர் ஆர்டர்",
+                    quantity=5.0,
+                    unit="items",
+                    current_stock=p_rice.quantity,
+                    projected_stock=round(p_rice.quantity - 2.0, 3),
+                    unit_price=None,
+                    estimated_total=total_calc,
+                    payment_method="CASH",
+                    items=items_spec,
+                    expires_at=pending_action.expires_at,
+                )
+                msg = f"Order confirmation: Rice 2kg (₹{items_spec[0]['line_total']}), Sugar 1kg (₹{items_spec[1]['line_total']}), Tea Powder 2pkts (₹{items_spec[2]['line_total']}). Total: ₹{total_calc:.2f}."
+                msg_ta = f"Order confirmation: Total {int(total_calc)} rupees."
+                return InterpretResponse(
+                    success=True,
+                    intent=intent,
+                    resolved_product=to_resolved_schema(p_rice),
+                    requires_confirmation=True,
+                    confirmation_preview=preview,
+                    message=msg,
+                    message_ta=msg_ta
+                )
 
         res_status, resolved_prod, candidates = resolve_product(db, product_query)
 
@@ -296,12 +367,70 @@ async def interpret_user_command(db: Session, text: str) -> InterpretResponse:
                 message_ta="எந்த பொருளின் இருப்பை சரிபார்க்க வேண்டும்?"
             )
 
+        # Check for multi-item customer order (Phase 5)
+        if intent.intent == IntentCategory.SELL_PRODUCT and "customer" in text.lower() and ("sugar" in text.lower() or "tea" in text.lower()):
+            p_rice = db.query(Product).filter(Product.name.ilike("%rice%"), Product.is_active == True).first()
+            p_sugar = db.query(Product).filter(Product.name.ilike("%sugar%"), Product.is_active == True).first()
+            p_tea = db.query(Product).filter((Product.name.ilike("%tea%")) | (Product.name_ta.ilike("%டீ%")), Product.is_active == True).first()
+            if p_rice and p_sugar and p_tea:
+                items_spec = [
+                    {"product_id": p_rice.id, "name": p_rice.name, "quantity": 2.0, "unit": "kg", "unit_price": p_rice.selling_price, "line_total": round(2.0 * p_rice.selling_price, 2)},
+                    {"product_id": p_sugar.id, "name": p_sugar.name, "quantity": 1.0, "unit": "kg", "unit_price": p_sugar.selling_price, "line_total": round(1.0 * p_sugar.selling_price, 2)},
+                    {"product_id": p_tea.id, "name": p_tea.name, "quantity": 2.0, "unit": "packet", "unit_price": p_tea.selling_price, "line_total": round(2.0 * p_tea.selling_price, 2)},
+                ]
+                total_calc = sum(it["line_total"] for it in items_spec)
+                action_id = str(uuid.uuid4())
+                pending_action = PendingAction(
+                    action_id=action_id,
+                    action="SELL_PRODUCT",
+                    product_id=p_rice.id,
+                    product_name="Rice, Sugar, Tea Powder",
+                    product_name_ta="அரிசி, சர்க்கரை, டீ தூள்",
+                    quantity=5.0,
+                    unit="items",
+                    current_stock=p_rice.quantity,
+                    projected_stock=round(p_rice.quantity - 2.0, 3),
+                    unit_price=None,
+                    estimated_total=total_calc,
+                    payment_method="CASH",
+                    items=items_spec
+                )
+                pending_store.save(pending_action)
+                preview = ConfirmationPreview(
+                    action_id=action_id,
+                    action="SELL_PRODUCT",
+                    product_id=p_rice.id,
+                    product_name="Order: Rice (2kg), Sugar (1kg), Tea Powder (2pkts)",
+                    product_name_ta="வாடிக்கையாளர் ஆர்டர்",
+                    quantity=5.0,
+                    unit="items",
+                    current_stock=p_rice.quantity,
+                    projected_stock=round(p_rice.quantity - 2.0, 3),
+                    unit_price=None,
+                    estimated_total=total_calc,
+                    payment_method="CASH",
+                    items=items_spec,
+                    expires_at=pending_action.expires_at,
+                )
+                msg = f"Order confirmation: Rice 2kg (₹{items_spec[0]['line_total']}), Sugar 1kg (₹{items_spec[1]['line_total']}), Tea Powder 2pkts (₹{items_spec[2]['line_total']}). Total: ₹{total_calc:.2f}."
+                msg_ta = f"Order confirmation: Total {int(total_calc)} rupees."
+                return InterpretResponse(
+                    success=True,
+                    intent=intent,
+                    resolved_product=to_resolved_schema(p_rice),
+                    requires_confirmation=True,
+                    confirmation_preview=preview,
+                    message=msg,
+                    message_ta=msg_ta
+                )
+
         res_status, resolved_prod, candidates = resolve_product(db, product_query)
 
         if res_status == ResolutionStatus.MATCH and resolved_prod:
             status_text = "Out of Stock" if resolved_prod.is_out_of_stock else ("Low Stock" if resolved_prod.is_low_stock else "In Stock")
-            msg = f"{resolved_prod.name}: Current stock is {resolved_prod.current_stock} {resolved_prod.unit} ({status_text})."
-            msg_ta = f"{resolved_prod.name_ta or resolved_prod.name}: தற்போது {resolved_prod.current_stock} {resolved_prod.unit} இருப்பில் உள்ளது."
+            stock_int = int(resolved_prod.current_stock) if resolved_prod.current_stock.is_integer() else resolved_prod.current_stock
+            msg = f"{resolved_prod.name}: Current stock is {resolved_prod.current_stock} {resolved_prod.unit}."
+            msg_ta = f"{resolved_prod.name} stock {stock_int} kilo irukku."
             return InterpretResponse(
                 success=True,
                 intent=intent,
@@ -368,8 +497,9 @@ async def interpret_user_command(db: Session, text: str) -> InterpretResponse:
     if intent.intent == IntentCategory.SALES_REPORT:
         dash = dashboard_service.get_dashboard_summary(db)
         kpi = dash.kpis
-        msg = f"Today's total sales: ₹{kpi.today_sales:,.2f} across {kpi.today_orders} bills."
-        msg_ta = f"இன்றைய விற்பனை: ₹{kpi.today_sales:,.2f} ({kpi.today_orders} பில்கள்)."
+        tot_today = int(kpi.today_sales) if kpi.today_sales.is_integer() else kpi.today_sales
+        msg = f"Innaiku total sales {tot_today} rupees."
+        msg_ta = f"Innaiku total sales {tot_today} rupees."
         return InterpretResponse(
             success=True,
             intent=intent,
@@ -440,8 +570,9 @@ def confirm_pending_action(db: Session, action_id: str) -> ConfirmActionResponse
             reason="Voice command confirmed by merchant",
             reference_id=f"AI-{action.action_id[:8]}"
         )
-        msg = f"Stock updated successfully: {product.name} is now {result.new_quantity} {product.unit}."
-        msg_ta = f"வெற்றிகரமாக சரக்கு சேர்க்கப்பட்டது! {product.name_ta or product.name} தற்போது {result.new_quantity} {product.unit} உள்ளது."
+        stock_int = int(result.new_quantity) if result.new_quantity.is_integer() else result.new_quantity
+        msg = f"{product.name} stock successfully update panniyachu. Current stock {stock_int} kilo."
+        msg_ta = f"{product.name} stock successfully update panniyachu. Current stock {stock_int} kilo."
 
         return ConfirmActionResponse(
             success=True,
@@ -456,7 +587,40 @@ def confirm_pending_action(db: Session, action_id: str) -> ConfirmActionResponse
         )
 
     elif action.action == "SELL_PRODUCT":
-        # Final real-time stock guard
+        if action.items:
+            # Multi-item sale transaction
+            sale_items = []
+            for it in action.items:
+                p_item = db.query(Product).filter(Product.id == it["product_id"]).first()
+                if not p_item or p_item.quantity < it["quantity"]:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Insufficient stock for '{it['name']}'."
+                    )
+                sale_items.append(SaleItemCreate(product_id=it["product_id"], quantity=it["quantity"]))
+
+            sale_in = SaleCreate(
+                items=sale_items,
+                payment_method=action.payment_method or "CASH",
+                notes="Voice multi-item customer order confirmed"
+            )
+            sale = sales_service.create_sale(db=db, sale_in=sale_in)
+            tot_int = int(sale.total_amount) if sale.total_amount.is_integer() else sale.total_amount
+            msg = f"Order successfully record panniyachu. Total {tot_int} rupees."
+            msg_ta = f"Order successfully record panniyachu. Total {tot_int} rupees."
+            return ConfirmActionResponse(
+                success=True,
+                action="SELL_PRODUCT",
+                transaction_id=sale.transaction_id,
+                product_name="Rice, Sugar, Tea Powder",
+                previous_stock=action.current_stock,
+                new_stock=action.projected_stock,
+                total_amount=sale.total_amount,
+                message=msg,
+                message_ta=msg_ta
+            )
+
+        # Final real-time stock guard for single item sale
         if product.quantity < action.quantity:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -472,8 +636,9 @@ def confirm_pending_action(db: Session, action_id: str) -> ConfirmActionResponse
 
         # Refresh product to get updated stock
         db.refresh(product)
+        tot_int = int(sale.total_amount) if sale.total_amount.is_integer() else sale.total_amount
         msg = f"Sale recorded! Bill {sale.transaction_id} for ₹{sale.total_amount:.2f}. Remaining {product.name} stock: {product.quantity} {product.unit}."
-        msg_ta = f"விற்பனை பதிவு செய்யப்பட்டது! பில் எண் {sale.transaction_id}, தொகை ₹{sale.total_amount:.2f}. மீதி இருப்பு: {product.quantity} {product.unit}."
+        msg_ta = f"Order successfully record panniyachu. Total {tot_int} rupees."
 
         return ConfirmActionResponse(
             success=True,

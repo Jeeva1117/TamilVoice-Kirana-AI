@@ -1,3 +1,5 @@
+
+
 # TamilVoice Kirana AI (தமிழ் வாய்ஸ் கிரானா AI)
 
 > An intelligent, voice-first billing, inventory management, and digital ledger (Khata) solution purpose-built for Kirana and retail store merchants in Tamil Nadu, powered by Tamil Natural Language Processing and speech recognition.

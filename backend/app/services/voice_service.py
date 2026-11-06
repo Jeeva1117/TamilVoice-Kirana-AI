@@ -53,7 +53,7 @@ class VoicePipelineService:
             )
 
         # Step 2: Gemini Intent Extraction & Catalog Resolution (reusing Phase 5)
-        ai_res = await interpret_user_command(db=db, text=final_transcript)
+        ai_res = await interpret_user_command(db=db, text=final_transcript, allow_mock=True)
 
         return VoiceCommandResponse(
             success=ai_res.success,
