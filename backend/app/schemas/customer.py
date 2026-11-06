@@ -34,3 +34,9 @@ class CustomerListResponse(BaseModel):
     items: List[CustomerResponse]
     total: int
 
+
+class UdhaarPaymentRequest(BaseModel):
+    amount: float = Field(..., gt=0, description="Amount being paid towards udhaar balance")
+    payment_method: str = Field("CASH", description="Payment method: CASH, UPI, BANK")
+    notes: Optional[str] = Field(None, description="Optional payment reference or note")
+

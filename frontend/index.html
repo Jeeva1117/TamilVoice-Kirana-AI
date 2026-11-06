@@ -21,6 +21,7 @@
   <link rel="stylesheet" href="css/inventory.css">
   <link rel="stylesheet" href="css/sales.css">
   <link rel="stylesheet" href="css/responsive.css">
+  <link rel="stylesheet" href="css/testing.css">
 
   <!-- Chart.js for Responsive Analytics Visualizations -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -138,6 +139,18 @@
             </svg>
           </span>
           <span class="nav-item-text">Settings</span>
+        </a>
+
+        <a href="#testing" class="nav-link" data-view="testing">
+          <span class="nav-icon" style="color: #38BDF8;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10 2v7.31L4.2 19a2 2 0 0 0 1.66 3h12.28a2 2 0 0 0 1.66-3L14 9.31V2"/>
+              <path d="M8.5 2h7"/>
+              <path d="M7 16h10"/>
+            </svg>
+          </span>
+          <span class="nav-item-text">Test Lab & Validation</span>
+          <span class="nav-badge" style="background: rgba(56, 189, 248, 0.15); color: #38BDF8; font-weight: 600;">QA Suite</span>
         </a>
       </nav>
 
@@ -1507,53 +1520,323 @@
           </div>
         </div>
 
+        <!-- ==============================================================
+             Reports & Analytics View Pane
+             ============================================================== -->
         <section id="view-reports" class="view-pane">
+          <!-- Top Valuation Summary Grid -->
+          <div class="metrics-grid" id="report-valuation-cards" style="margin-bottom: 1.5rem;">
+            <div class="metric-card">
+              <span class="metric-label">Total Unique Products</span>
+              <div class="metric-value" id="val-total-items">0</div>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Total Inventory Cost</span>
+              <div class="metric-value" id="val-total-cost">₹0</div>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Potential Retail Value</span>
+              <div class="metric-value text-success" id="val-total-retail">₹0</div>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Projected Gross Margin</span>
+              <div class="metric-value text-primary" id="val-potential-profit">₹0</div>
+            </div>
+          </div>
+
+          <!-- Quick CSV Export Actions Bar -->
+          <div class="card" style="margin-bottom: 1.5rem;">
+            <div class="card-body" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+              <div>
+                <h3 style="font-size:1.1rem; font-weight:700; color:var(--color-text-primary); margin-bottom:0.25rem;">Download Store Spreadsheets (CSV)</h3>
+                <p style="font-size:0.875rem; color:var(--color-text-secondary); margin:0;">Export data for local bookkeeping, tax reconciliation, and audit reporting.</p>
+              </div>
+              <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                <button class="btn btn-secondary btn-sm" data-export-type="products">
+                  Export Products CSV
+                </button>
+                <button class="btn btn-secondary btn-sm" data-export-type="daily">
+                  Export Daily Sales CSV
+                </button>
+                <button class="btn btn-primary btn-sm" data-export-type="inventory">
+                  Export Valuation CSV
+                </button>
+                <button class="btn btn-outline btn-sm" id="btn-refresh-reports">
+                  Refresh Data
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Daily Sales Breakdown Table -->
+          <div class="card" style="margin-bottom: 1.5rem;">
+            <div class="card-header">
+              <div class="card-title-wrap">
+                <h2 class="card-title">Daily Sales Performance (தினசரி விற்பனை சுருக்கம்)</h2>
+                <span class="card-subtitle">Revenue, bill counts, and average order value</span>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Total Revenue</th>
+                    <th>Orders Count</th>
+                    <th>Average Order Value</th>
+                  </tr>
+                </thead>
+                <tbody id="reports-daily-tbody">
+                  <tr><td colspan="4" style="text-align:center; padding:1.5rem; color:var(--color-text-secondary);">Loading daily sales breakdown...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Product Sales Ranking Table -->
           <div class="card">
             <div class="card-header">
               <div class="card-title-wrap">
-                <h2 class="card-title">Reports & Analytics (வணிக அறிக்கைகள்)</h2>
-                <span class="card-subtitle">Phase 6: Revenue, profit margin estimation, and CSV exports</span>
+                <h2 class="card-title">Product Sales Performance (பொருட்களின் விற்பனை)</h2>
+                <span class="card-subtitle">Top products ranked by cumulative sales revenue</span>
               </div>
             </div>
-            <div class="card-body" style="padding: 3rem; text-align: center;">
-              <p style="color: var(--color-text-secondary); margin-bottom: 1.5rem;">
-                Advanced business reporting and CSV export capabilities will be developed in Phase 6.
-              </p>
-              <button class="btn btn-primary" onclick="window.location.hash='dashboard'">Return to Dashboard</button>
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Product & SKU</th>
+                    <th>Category</th>
+                    <th>Units Sold</th>
+                    <th>Revenue Generated</th>
+                    <th>Current Stock</th>
+                  </tr>
+                </thead>
+                <tbody id="reports-products-tbody">
+                  <tr><td colspan="5" style="text-align:center; padding:1.5rem; color:var(--color-text-secondary);">Loading product performance...</td></tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </section>
 
+        <!-- ==============================================================
+             Customers & Khata View Pane
+             ============================================================== -->
         <section id="view-customers" class="view-pane">
           <div class="card">
-            <div class="card-header">
+            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
               <div class="card-title-wrap">
-                <h2 class="card-title">Customer Khata (கடன் கணக்கு புத்தகம்)</h2>
-                <span class="card-subtitle">Customer credit ledger, voice-logged payments and reconciliation</span>
+                <h2 class="card-title">Customer Khata Ledger (கடன் கணக்கு புத்தகம்)</h2>
+                <span class="card-subtitle">Track credit balances, record repayments, and manage store patrons</span>
+              </div>
+              <div style="display:flex; gap:0.5rem; align-items:center;">
+                <input type="text" id="customer-search-input" class="form-control" placeholder="Search customer or phone..." style="max-width:220px; font-size:0.875rem;">
+                <button class="btn btn-primary btn-sm" id="btn-add-customer-modal">+ Add Customer</button>
+                <button class="btn btn-secondary btn-sm" id="btn-refresh-customers">Refresh</button>
               </div>
             </div>
-            <div class="card-body" style="padding: 3rem; text-align: center;">
-              <p style="color: var(--color-text-secondary); margin-bottom: 1.5rem;">
-                Customer credit and udhaar khata ledger management.
-              </p>
-              <button class="btn btn-primary" onclick="window.location.hash='dashboard'">Return to Dashboard</button>
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Customer Name</th>
+                    <th>Phone</th>
+                    <th>Address / Area</th>
+                    <th>Credit / Udhaar Balance</th>
+                    <th style="text-align:right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="customers-tbody">
+                  <tr><td colspan="5" style="text-align:center; padding:2rem; color:var(--color-text-secondary);">Loading customer ledger...</td></tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </section>
 
+        <!-- ==============================================================
+             Store & Assistant Settings View Pane
+             ============================================================== -->
         <section id="view-settings" class="view-pane">
+          <!-- Backend & Voice Platform Readiness Cards -->
+          <div class="card" style="margin-bottom: 1.5rem;">
+            <div class="card-header">
+              <div class="card-title-wrap">
+                <h2 class="card-title">AI & Speech Platform Connectivity Status</h2>
+                <span class="card-subtitle">Live health status of integrated APIs</span>
+              </div>
+              <button class="btn btn-secondary btn-sm" id="btn-refresh-settings">Test Connections</button>
+            </div>
+            <div class="card-body" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:1rem;">
+              <div style="border:1px solid #E2E8F0; border-radius:8px; padding:1rem; background:#F8FAFC;">
+                <div style="font-size:0.8rem; color:#64748B; font-weight:600; margin-bottom:0.25rem;">GOOGLE GEMINI API</div>
+                <div style="font-weight:700; color:#0F172A; margin-bottom:0.5rem;">gemini-2.5-flash</div>
+                <span id="status-gemini" class="badge badge-success">Active / Ready</span>
+              </div>
+              <div style="border:1px solid #E2E8F0; border-radius:8px; padding:1rem; background:#F8FAFC;">
+                <div style="font-size:0.8rem; color:#64748B; font-weight:600; margin-bottom:0.25rem;">GNANI PRISMA STT</div>
+                <div style="font-weight:700; color:#0F172A; margin-bottom:0.5rem;">prisma-v2.5 (ta-IN)</div>
+                <span id="status-gnani-stt" class="badge badge-success">Active / Ready</span>
+              </div>
+              <div style="border:1px solid #E2E8F0; border-radius:8px; padding:1rem; background:#F8FAFC;">
+                <div style="font-size:0.8rem; color:#64748B; font-weight:600; margin-bottom:0.25rem;">GNANI TIMBRE TTS</div>
+                <div style="font-weight:700; color:#0F172A; margin-bottom:0.5rem;">timbre-v2.5 (ta-IN)</div>
+                <span id="status-gnani-tts" class="badge badge-success">Active / Ready</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Store Profile & Voice Settings Form -->
           <div class="card">
             <div class="card-header">
               <div class="card-title-wrap">
-                <h2 class="card-title">Store & Assistant Settings (அமைப்புகள்)</h2>
-                <span class="card-subtitle">Shop profile, printer preferences, and API configuration</span>
+                <h2 class="card-title">Store Profile & Assistant Configuration</h2>
+                <span class="card-subtitle">Configure Kirana store identity, speech speed, and bilingual preferences</span>
               </div>
             </div>
-            <div class="card-body" style="padding: 3rem; text-align: center;">
-              <p style="color: var(--color-text-secondary); margin-bottom: 1.5rem;">
-                Settings and backend endpoint configuration.
-              </p>
-              <button class="btn btn-primary" onclick="window.location.hash='dashboard'">Return to Dashboard</button>
+            <div class="card-body">
+              <form id="settings-store-form">
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:1.25rem; margin-bottom:1.5rem;">
+                  <div>
+                    <label class="form-label">Shop Name (English)</label>
+                    <input type="text" id="set-shop-name" class="form-control" required>
+                  </div>
+                  <div>
+                    <label class="form-label">Shop Name (Tamil - தமிழில்)</label>
+                    <input type="text" id="set-shop-name-ta" class="form-control">
+                  </div>
+                  <div>
+                    <label class="form-label">Proprietor Name</label>
+                    <input type="text" id="set-owner-name" class="form-control">
+                  </div>
+                  <div>
+                    <label class="form-label">Contact Phone</label>
+                    <input type="text" id="set-phone" class="form-control">
+                  </div>
+                  <div style="grid-column: 1 / -1;">
+                    <label class="form-label">Physical Store Address</label>
+                    <input type="text" id="set-address" class="form-control">
+                  </div>
+                  <div>
+                    <label class="form-label">GSTIN / Tax ID</label>
+                    <input type="text" id="set-gstin" class="form-control">
+                  </div>
+                  <div>
+                    <label class="form-label">Voice Assistant Language</label>
+                    <select id="set-voice-lang" class="form-control">
+                      <option value="ta">Tamil (தமிழ்)</option>
+                      <option value="tanglish">Tanglish (தமிழ் + English)</option>
+                      <option value="en">English</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="form-label">TTS Speech Speed (0.5x - 2.0x)</label>
+                    <input type="number" id="set-speech-speed" class="form-control" step="0.1" min="0.5" max="2.0">
+                  </div>
+                  <div>
+                    <label class="form-label">Default Low Stock Alert Threshold</label>
+                    <input type="number" id="set-threshold" class="form-control" step="1" min="1">
+                  </div>
+                </div>
+                <div style="display:flex; justify-content:flex-end; gap:0.75rem;">
+                  <button type="submit" class="btn btn-primary">Save Settings</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==============================================================
+             Visual Testing Dashboard & QA Validation Pane
+             ============================================================== -->
+        <section id="view-testing" class="view-pane">
+          <!-- Top Mode Selector Banner -->
+          <div class="testing-header-banner">
+            <div>
+              <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem;">
+                <span class="badge badge-primary" style="font-size:0.75rem; letter-spacing:0.05em;">SYSTEM VALIDATION LAB</span>
+                <span id="test-overall-badge" class="test-status-badge status-not-run">READY TO RUN</span>
+              </div>
+              <h2 style="font-size:1.35rem; font-weight:800; color:#0F172A; margin:0;">End-to-End Test & Demo Validation Suite</h2>
+              <p id="current-mode-label" style="font-size:0.875rem; color:#64748B; margin-top:0.25rem; margin-bottom:0;">Mode A — Mock / Dry Run (0 Credits Consumed)</p>
+            </div>
+
+            <!-- Testing Mode Selector Pills -->
+            <div class="mode-selector-tabs">
+              <button class="mode-tab-btn active" data-testing-mode="mock">Mode A (Mock / 0 Credits)</button>
+              <button class="mode-tab-btn" data-testing-mode="real">Mode B (Real API Test)</button>
+              <button class="mode-tab-btn" data-testing-mode="demo">Mode C (Demo Sandbox)</button>
+            </div>
+          </div>
+
+          <!-- Gnani API Credit Protection Notice Banner -->
+          <div class="credit-protection-card">
+            <div style="display:flex; align-items:center; gap:0.75rem;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+                <path d="m9 12 2 2 4-4"/>
+              </svg>
+              <div>
+                <strong>Gnani API Credit Protection Active:</strong>
+                <span style="margin-left:4px;">Automated runs operate exclusively in safe Mock/Dry-Run mode. Real requests require explicit confirmation.</span>
+              </div>
+            </div>
+            <div class="credit-badge-pill">Credits remaining: ~5,000 | Usage: Not available from provider API</div>
+          </div>
+
+          <!-- Progress and Execution Metrics Bar -->
+          <div class="testing-kpi-grid">
+            <div class="test-kpi-card">
+              <span class="test-kpi-label">Total Tests</span>
+              <div class="test-kpi-val" id="test-count-total">13</div>
+            </div>
+            <div class="test-kpi-card">
+              <span class="test-kpi-label">Passed</span>
+              <div class="test-kpi-val val-passed" id="test-count-passed">0</div>
+            </div>
+            <div class="test-kpi-card">
+              <span class="test-kpi-label">Failed</span>
+              <div class="test-kpi-val val-failed" id="test-count-failed">0</div>
+            </div>
+            <div class="test-kpi-card">
+              <span class="test-kpi-label">Blocked</span>
+              <div class="test-kpi-val val-blocked" id="test-count-blocked">0</div>
+            </div>
+            <div class="test-kpi-card" style="grid-column: span 2;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span class="test-kpi-label">Suite Progress</span>
+                <span id="testing-progress-percent" style="font-weight:700; font-size:0.875rem; color:#2563EB;">0%</span>
+              </div>
+              <div class="progress-container">
+                <div class="progress-bar-fill" id="testing-progress-fill"></div>
+              </div>
+              <div style="display:flex; gap:0.5rem; margin-top:0.75rem;">
+                <button class="btn btn-primary btn-sm" id="btn-run-all-tests">Run All Tests</button>
+                <button class="btn btn-secondary btn-sm" id="btn-reset-tests">Reset Suite</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 13 Individual Test Category Cards Grid -->
+          <div class="testing-cards-grid" id="testing-cards-grid">
+            <!-- Dynamically populated by testing.js -->
+          </div>
+
+          <!-- Real Interactive Terminal Console -->
+          <div class="terminal-card">
+            <div class="terminal-header">
+              <div class="terminal-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="4 17 10 11 4 5"/>
+                  <line x1="12" x2="20" y1="19" y2="19"/>
+                </svg>
+                <span>Live Validation Terminal & Diagnostic Logs</span>
+              </div>
+              <button class="btn btn-outline btn-xs" id="btn-clear-test-logs" style="color:#94A3B8; border-color:#334155;">Clear Console</button>
+            </div>
+            <div class="terminal-logs" id="testing-terminal-logs">
+              <div class="terminal-line" style="color:#64748B;">[SYSTEM] Visual Testing Dashboard loaded. Ready for execution.</div>
             </div>
           </div>
         </section>

@@ -15,6 +15,8 @@ from backend.app.routers import (
     reports_router,
     voice_router,
     ai_router,
+    settings_router,
+    system_test_router,
 )
 
 
@@ -63,6 +65,8 @@ app.include_router(dashboard_router, prefix=api_prefix)
 app.include_router(reports_router, prefix=api_prefix)
 app.include_router(voice_router, prefix=api_prefix)
 app.include_router(ai_router, prefix=api_prefix)
+app.include_router(settings_router, prefix=api_prefix)
+app.include_router(system_test_router, prefix=api_prefix)
 
 
 @app.get("/")

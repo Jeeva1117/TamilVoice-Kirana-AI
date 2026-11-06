@@ -5,8 +5,12 @@
  */
 
 export const API_CONFIG = {
-  BASE_URL: 'http://localhost:8000/api',
-  TIMEOUT_MS: 6000,
+  BASE_URL: (typeof window !== 'undefined' && window.__API_BASE_URL__) || (
+    typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+      ? `${window.location.protocol}//${window.location.hostname}:8000/api`
+      : '/api'
+  ),
+  TIMEOUT_MS: 8000,
   IS_BACKEND_AVAILABLE: false,
 };
 
@@ -179,6 +183,19 @@ export class ApiService {
     });
   }
 
+  static async recordCustomerPayment(customerId, paymentData) {
+    return this.request(`/customers/${customerId}/payment`, {
+      method: 'POST',
+      body: JSON.stringify(paymentData),
+    });
+  }
+
+  static async getCustomerSales(customerId, limit = 50) {
+    return this.request(`/customers/${customerId}/sales?limit=${limit}`, {
+      method: 'GET',
+    });
+  }
+
   /* =========================================================================
      Reports & Analytics Endpoints
      ========================================================================= */
@@ -196,6 +213,41 @@ export class ApiService {
 
   static async getInventoryValuationReport() {
     return this.request('/reports/inventory', { method: 'GET' });
+  }
+
+  static getExportCsvUrl(reportType, startDate = null, endDate = null) {
+    const params = new URLSearchParams({ report_type: reportType });
+    if (startDate) params.set('start_date', startDate);
+    if (endDate) params.set('end_date', endDate);
+    return `${API_CONFIG.BASE_URL}/reports/export/csv?${params.toString()}`;
+  }
+
+  /* =========================================================================
+     Settings Endpoints
+     ========================================================================= */
+  static async getStoreSettings() {
+    return this.request('/settings', { method: 'GET' });
+  }
+
+  static async updateStoreSettings(settingsData) {
+    return this.request('/settings', {
+      method: 'PUT',
+      body: JSON.stringify(settingsData),
+    });
+  }
+
+  /* =========================================================================
+     System Validation & Testing Endpoints
+     ========================================================================= */
+  static async getTestStatus() {
+    return this.request('/test/status', { method: 'GET' });
+  }
+
+  static async runSystemTest(testPayload) {
+    return this.request('/test/run', {
+      method: 'POST',
+      body: JSON.stringify(testPayload),
+    });
   }
 
   /* =========================================================================

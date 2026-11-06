@@ -164,7 +164,9 @@ export const Navigation = {
       inventory: { en: 'Inventory Management', ta: 'சரக்கு இருப்பு மேலாண்மை' },
       sales: { en: 'Sales & Billing Records', ta: 'விற்பனை மற்றும் பில்கள்' },
       reports: { en: 'Reports & Analytics', ta: 'வணிக அறிக்கைகள்' },
-      settings: { en: 'Store Settings', ta: 'கடை அமைப்புகள்' }
+      customers: { en: 'Customer Khata Ledger', ta: 'வாடிக்கையாளர் கணக்கு' },
+      settings: { en: 'Store Settings', ta: 'கடை அமைப்புகள்' },
+      testing: { en: 'System Validation & Test Lab', ta: 'கணினி சோதனை அரங்கம்' }
     };
 
     const currentLang = localStorage.getItem('tv_lang') || 'en';

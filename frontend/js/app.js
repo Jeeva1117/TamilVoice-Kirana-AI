@@ -10,6 +10,10 @@ import { Dashboard } from './dashboard.js';
 import { VoiceAssistant } from './voice.js';
 import { Inventory } from './inventory.js';
 import { Sales } from './sales.js';
+import { Reports } from './reports.js';
+import { Customers } from './customers.js';
+import { Settings } from './settings.js';
+import { TestingDashboard } from './testing.js';
 
 export const App = {
   currentLang: 'en',
@@ -22,11 +26,15 @@ export const App = {
     VoiceAssistant.init();
     Inventory.init();
     Sales.init();
+    Reports.init();
+    Customers.init();
+    Settings.init();
+    TestingDashboard.init();
     this.bindGlobalEvents();
 
-    // Check if initial hash is set (e.g. #voice)
+    // Check if initial hash is set (e.g. #voice, #testing)
     const initialHash = window.location.hash.replace('#', '');
-    if (initialHash && ['dashboard', 'voice', 'inventory', 'sales', 'reports', 'customers', 'settings'].includes(initialHash)) {
+    if (initialHash && ['dashboard', 'voice', 'inventory', 'sales', 'reports', 'customers', 'settings', 'testing'].includes(initialHash)) {
       Navigation.switchView(initialHash, false);
     }
 
