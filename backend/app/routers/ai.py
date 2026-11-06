@@ -66,3 +66,4 @@ def cancel_action(request: CancelActionRequest):
     Cancel and discard a pending action token without altering the database.
     """
     return cancel_pending_action(action_id=request.action_id)
+

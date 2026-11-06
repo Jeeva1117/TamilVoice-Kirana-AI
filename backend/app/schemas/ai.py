@@ -183,3 +183,4 @@ class AIStatusResponse(BaseModel):
     model: str
     provider: str = "Google Gemini"
     ready: bool
+

@@ -33,7 +33,7 @@ backend/
 │   │   ├── dashboard.py         # Real-time dashboard KPIs
 │   │   ├── reports.py           # Daily & product analytics
 │   │   ├── ai.py                # Intent categories, entities, confirmation previews
-│   │   └── voice.py             # Voice simulation schemas
+│   │   └── voice.py             # Gnani STT/TTS and voice pipeline schemas
 │   │
 │   ├── routers/                 # Modular API Endpoints mounted at /api
 │   │   ├── __init__.py
@@ -45,7 +45,7 @@ backend/
 │   │   ├── dashboard.py         # /api/dashboard (Live IST KPIs)
 │   │   ├── reports.py           # /api/reports (Daily, products, valuation)
 │   │   ├── ai.py                # /api/ai/interpret, confirm, cancel, status
-│   │   └── voice.py             # /api/voice/process
+│   │   └── voice.py             # /api/voice/status, transcribe, command, speak
 │   │
 │   ├── services/                # Encapsulated Business Logic Layer
 │   │   ├── __init__.py
@@ -56,7 +56,10 @@ backend/
 │   │   ├── reports_service.py   # Daily sales summaries and inventory valuation
 │   │   ├── product_resolver.py  # Bilingual Tamil/Tanglish/English catalog matching
 │   │   ├── gemini_client.py     # Official Google GenAI SDK intent extraction
-│   │   └── ai_service.py        # AI orchestration, safe confirmation preview, TTL store
+│   │   ├── ai_service.py        # AI orchestration, safe confirmation preview, TTL store
+│   │   ├── gnani_stt_service.py # Gnani Prisma v2.5 Speech-to-Text ASR
+│   │   ├── gnani_tts_service.py # Gnani Timbre v2.5 Text-to-Speech synthesis
+│   │   └── voice_service.py     # Voice pipeline: Audio -> STT -> Gemini -> Preview
 │   │
 │   └── utils/
 │       ├── __init__.py
@@ -66,7 +69,7 @@ backend/
 │   ├── versions/
 │   └── env.py
 ├── alembic.ini
-├── tests/                       # Pytest automated test suite (39 tests)
+├── tests/                       # Pytest automated test suite (56 tests)
 │   ├── conftest.py              # In-memory SQLite fixtures & TestClient
 │   ├── test_health.py
 │   ├── test_inventory.py
@@ -74,7 +77,8 @@ backend/
 │   ├── test_sales.py
 │   ├── test_dashboard.py
 │   ├── test_reports.py
-│   └── test_ai.py               # Phase 5: Gemini intent, resolution, confirmation
+│   ├── test_ai.py               # Phase 5: Gemini intent, resolution, confirmation
+│   └── test_voice.py            # Phase 6: Gnani Prisma STT & Timbre TTS pipeline
 ├── requirements.txt
 ├── .env.example
 └── README.md
@@ -135,7 +139,62 @@ User confirms or cancels:
 
 ---
 
-## 4. Environment Variables Configuration
+## 4. Phase 6: Gnani Prisma v2.5 STT & Gnani Timbre v2.5 TTS Integration
+
+Phase 6 connects live conversational Tamil speech to the FastAPI backend using Gnani's Indic voice intelligence models.
+
+### Architecture & Specs
+- **Speech-to-Text (STT):** **Gnani Prisma v2.5**
+  - REST endpoint: `POST https://api.vachana.ai/stt/v3`
+  - Auth header: `X-API-Key-ID: <GNANI_API_KEY>`
+  - Models: `prisma-v2.5`
+  - Audio formats: `audio/wav`, `audio/webm`, `audio/ogg`, `audio/mpeg`
+  - Supported language codes: `ta-IN` (Tamil), `ta` (colloquial Tanglish), `en-IN` (Indian English)
+- **Text-to-Speech (TTS):** **Gnani Timbre v2.5**
+  - REST endpoint: `POST https://api.vachana.ai/api/v1/tts/inference`
+  - Auth header: `X-API-Key-ID: <GNANI_API_KEY>`
+  - Models: `timbre-v2.5`
+  - Output container: `audio/wav` 16-bit PCM @ 24,000 Hz
+  - Voice profiles: `standard` natural conversational Tamil retail assistant
+
+### End-to-End Conversational Pipeline
+```text
+Browser Microphone Capture (MediaRecorder WebM)
+        ↓
+POST /api/voice/command (or /api/voice/transcribe)
+        ↓
+Gnani Prisma v2.5 STT (converts audio stream to Tamil/Tanglish text)
+        ↓
+Phase 5 Gemini Intent Extraction (extracts action, entities, confidence)
+        ↓
+Product Resolver (maps bilingual names/synonyms to SQLite catalog)
+        ↓
+Business Rule & Stock Validation (checks inventory without mutating DB)
+        ↓
+Confirmation Preview generated (returns action_id, projected stock, totals)
+        ↓
+Merchant reviews & confirms via POST /api/ai/confirm
+        ↓
+SQLite atomic commit & audit movement logged
+        ↓
+POST /api/voice/speak calls Gnani Timbre v2.5 (synthesizes Tamil WAV)
+        ↓
+Browser Audio() plays response to Kirana merchant
+```
+
+### Dedicated Voice Endpoints
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/api/voice/status` | Returns Gnani STT & TTS readiness, models, and demo mode indicator |
+| `POST` | `/api/voice/transcribe` | Transcribes audio files (multipart `file` or `audio_file`) to text |
+| `POST` | `/api/voice/command` | End-to-end voice pipeline: audio/text -> STT -> Gemini -> confirmation preview |
+| `POST` | `/api/voice/speak` | Synthesizes text into high-fidelity Tamil WAV audio |
+| `POST` | `/api/voice/process` | Legacy backwards-compatible simulation endpoint |
+
+---
+
+## 5. Environment Variables Configuration
 
 Create a `.env` file in the `backend/` directory (or use `.env.example` as a template):
 
@@ -153,13 +212,24 @@ GEMINI_API_KEY=your_gemini_api_key_here
 GEMINI_MODEL=gemini-2.5-flash
 GEMINI_ENABLED=true
 GEMINI_TIMEOUT_SECONDS=15.0
+
+# Gnani.ai Voice Platform Configuration (Prisma v2.5 STT & Timbre v2.5 TTS)
+GNANI_API_KEY=your_gnani_api_key_here
+GNANI_STT_MODEL=prisma-v2.5
+GNANI_TTS_MODEL=timbre-v2.5
+GNANI_STT_ENABLED=true
+GNANI_TTS_ENABLED=true
+GNANI_API_BASE_URL=https://api.vachana.ai
+GNANI_STT_TIMEOUT=15.0
+GNANI_TTS_TIMEOUT=15.0
+MAX_AUDIO_SIZE_BYTES=10485760
 ```
 
-> **Security Note:** `.env` is listed in `.gitignore` and must never be committed to source control. If `GEMINI_API_KEY` is not configured, the frontend gracefully operates in client-side Demo Mode.
+> **Security & Graceful Degradation Note:** `.env` is listed in `.gitignore` and must never be committed to source control. When `GNANI_API_KEY` is unconfigured, the backend automatically falls back to deterministic mock transcription and synthesized PCM WAV audio, enabling full local testing and seamless frontend demo workflows.
 
 ---
 
-## 5. Running the Backend Locally (Windows PowerShell)
+## 6. Running the Backend Locally (Windows PowerShell)
 
 ```powershell
 # Navigate to backend directory
@@ -184,12 +254,12 @@ Interactive documentation will be available at:
 
 ---
 
-## 6. Running Automated Tests
+## 7. Running Automated Tests
 
-Run the full automated test suite (39 tests, including Phase 4 CRUD and Phase 5 Gemini intent extraction):
+Run the full automated test suite (56 tests covering all Phases 1–6):
 
 ```powershell
 python -m pytest backend/tests -v
 ```
 
-All AI tests use offline mocked responses and do not consume Gemini API quota or require live network access.
+All Voice STT/TTS and AI tests use offline mocked responses and do not consume external quotas or require network access.

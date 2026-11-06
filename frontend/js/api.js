@@ -225,4 +225,69 @@ export class ApiService {
       body: JSON.stringify({ action_id: actionId }),
     });
   }
+
+  /* =========================================================================
+     Phase 6: Gnani Prisma STT & Gnani Timbre TTS Endpoints
+     ========================================================================= */
+  static async getVoiceStatus() {
+    return this.request('/voice/status', { method: 'GET' });
+  }
+
+  static async transcribeAudio(audioBlob, language = 'ta-IN') {
+    const formData = new FormData();
+    formData.append('file', audioBlob, 'recording.wav');
+    formData.append('language', language);
+
+    const url = `${API_CONFIG.BASE_URL}/voice/transcribe`;
+    const response = await fetch(url, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.detail || `STT error: ${response.statusText}`);
+    }
+    return await response.json();
+  }
+
+  static async processVoiceCommand(audioBlob = null, transcriptText = null, language = 'ta-IN') {
+    const formData = new FormData();
+    if (audioBlob) {
+      formData.append('audio', audioBlob, 'recording.wav');
+    }
+    if (transcriptText) {
+      formData.append('transcript', transcriptText);
+    }
+    formData.append('language', language);
+
+    const url = `${API_CONFIG.BASE_URL}/voice/command`;
+    const response = await fetch(url, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.detail || `Voice command error: ${response.statusText}`);
+    }
+    return await response.json();
+  }
+
+  static async synthesizeSpeech(text, language = 'ta-IN', speed = 1.0) {
+    const url = `${API_CONFIG.BASE_URL}/voice/speak`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ text, language, speed }),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.detail || `TTS synthesis error: ${response.statusText}`);
+    }
+    return await response.blob();
+  }
 }

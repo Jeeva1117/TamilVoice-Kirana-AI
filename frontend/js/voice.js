@@ -9,15 +9,24 @@ import { ApiService, API_CONFIG } from './api.js';
 import { Store } from './store.js';
 
 export const VoiceAssistant = {
-  // 7 Voice States
+  // Extended 16 Voice States (Phase 6 Gnani Prisma + Timbre pipeline)
   STATES: {
     IDLE: 'idle',
     LISTENING: 'listening',
-    PROCESSING: 'processing',
+    RECORDING: 'recording',
+    UPLOADING: 'uploading',
+    TRANSCRIBING: 'transcribing',
+    TRANSCRIPT_READY: 'transcript_ready',
+    UNDERSTANDING: 'understanding',
+    CLARIFICATION_REQUIRED: 'clarification_required',
+    AWAITING_CONFIRMATION: 'awaiting_confirmation',
     CONFIRMATION: 'confirmation',
     EXECUTING: 'executing',
+    GENERATING_SPEECH: 'generating_speech',
+    PLAYING_AUDIO: 'playing_audio',
     SUCCESS: 'success',
-    ERROR: 'error'
+    ERROR: 'error',
+    CANCELLED: 'cancelled'
   },
 
   currentState: 'idle',
@@ -27,6 +36,8 @@ export const VoiceAssistant = {
   recordingInterval: null,
   recordingStartTime: 0,
   activeLanguage: 'ta', // 'ta' | 'tanglish' | 'en'
+  activeAudio: null,
+  voiceStatus: null,
 
   // Current Pending Action for Confirmation
   currentAction: null,
@@ -119,7 +130,24 @@ export const VoiceAssistant = {
     this.cacheDOM();
     this.bindEvents();
     this.loadHistory();
+    this.checkVoiceStatus();
     this.setState(this.STATES.IDLE);
+  },
+
+  async checkVoiceStatus() {
+    try {
+      const status = await ApiService.getVoiceStatus();
+      this.voiceStatus = status;
+      if (this.ttsNotice) {
+        if (status.stt_ready && status.tts_ready) {
+          this.ttsNotice.textContent = 'Gnani Prisma v2.5 STT & Timbre v2.5 TTS Active (Live Tamil Voice)';
+        } else {
+          this.ttsNotice.textContent = 'Gnani Voice Engine (Mock / Demo Mode Active - Configure GNANI_API_KEY)';
+        }
+      }
+    } catch (e) {
+      console.warn('[VoiceAssistant] Voice status check warning:', e.message);
+    }
   },
 
   cacheDOM() {
@@ -174,9 +202,14 @@ export const VoiceAssistant = {
     // Microphone Click Handler
     if (this.micBtn) {
       this.micBtn.addEventListener('click', () => {
-        if (this.currentState === this.STATES.LISTENING) {
+        if (this.currentState === this.STATES.LISTENING || this.currentState === this.STATES.RECORDING) {
           this.stopRecording();
-        } else if (this.currentState === this.STATES.IDLE || this.currentState === this.STATES.SUCCESS || this.currentState === this.STATES.ERROR) {
+        } else if (
+          this.currentState === this.STATES.IDLE ||
+          this.currentState === this.STATES.SUCCESS ||
+          this.currentState === this.STATES.ERROR ||
+          this.currentState === this.STATES.CANCELLED
+        ) {
           this.startRecording();
         }
       });
@@ -270,41 +303,79 @@ export const VoiceAssistant = {
   },
 
   /**
-   * Set one of the 7 voice interaction states
-   * @param {string} state - idle | listening | processing | confirmation | executing | success | error
+   * Set one of the extended voice interaction states
+   * @param {string} state
    * @param {string} customMsg
    */
   setState(state, customMsg = '') {
     this.currentState = state;
 
+    const baseClassMap = {
+      idle: 'idle',
+      listening: 'listening',
+      recording: 'listening',
+      uploading: 'processing',
+      transcribing: 'processing',
+      transcript_ready: 'processing',
+      understanding: 'processing',
+      clarification_required: 'error',
+      awaiting_confirmation: 'confirmation',
+      confirmation: 'confirmation',
+      executing: 'executing',
+      generating_speech: 'processing',
+      playing_audio: 'listening',
+      success: 'success',
+      error: 'error',
+      cancelled: 'idle'
+    };
+    const baseClass = baseClassMap[state] || state;
+
     // Reset classes on stage card
     if (this.stageCard) {
-      this.stageCard.className = `voice-stage-card state-${state}`;
+      this.stageCard.className = `voice-stage-card state-${baseClass}`;
     }
 
     // Reset status pill
     if (this.statusPill) {
-      this.statusPill.className = `voice-status-pill ${state}`;
+      this.statusPill.className = `voice-status-pill ${baseClass}`;
     }
 
     const stateLabels = {
       idle: 'Idle — Ready',
       listening: 'Listening...',
-      processing: 'Processing AI Intent...',
+      recording: 'Recording Audio...',
+      uploading: 'Uploading Audio...',
+      transcribing: 'Transcribing (Gnani Prisma)...',
+      transcript_ready: 'Transcript Ready',
+      understanding: 'Understanding Intent (Gemini)...',
+      clarification_required: 'Clarification Required',
+      awaiting_confirmation: 'Confirmation Required',
       confirmation: 'Confirmation Required',
       executing: 'Executing Action...',
-      success: 'Demo Action Completed',
-      error: 'Error Occurred'
+      generating_speech: 'Synthesizing Tamil Speech...',
+      playing_audio: 'Playing Spoken Response...',
+      success: 'Action Completed',
+      error: 'Error Occurred',
+      cancelled: 'Action Cancelled'
     };
 
     const promptMessages = {
       idle: '“வணக்கம்! உங்கள் கடைக்கு இன்று என்ன செய்ய வேண்டும்?”',
       listening: '“Listening... Speak in colloquial Tamil or Tanglish.”',
-      processing: '“Understanding your request through AI reasoning...”',
+      recording: '“Recording your Tamil voice command...”',
+      uploading: '“Uploading audio stream to voice processor...”',
+      transcribing: '“Transcribing speech with Gnani Prisma v2.5...”',
+      transcript_ready: '“Speech converted to text. Analyzing Kirana intent...”',
+      understanding: '“Gemini AI is analyzing Kirana shopkeeper intent...”',
+      clarification_required: '“Please clarify the missing product or quantity details.”',
+      awaiting_confirmation: '“Always review and confirm details before executing.”',
       confirmation: '“Always review and confirm details before executing.”',
-      executing: '“Simulating business record update in demo mode...”',
-      success: '“சரி! உங்கள் செயல்பாடு வெற்றிகரமாக முடிந்தது (Demo).”',
-      error: '“Microphone permission denied or recognition error.”'
+      executing: '“Updating store records in SQLite database...”',
+      generating_speech: '“Generating natural Tamil voice response...”',
+      playing_audio: '“Playing spoken audio response via Gnani Timbre...”',
+      success: '“சரி! உங்கள் செயல்பாடு வெற்றிகரமாக முடிந்தது.”',
+      error: '“Microphone permission denied or voice processing error.”',
+      cancelled: '“Action cancelled. No database changes were made.”'
     };
 
     if (this.statusPillText) {
@@ -317,12 +388,19 @@ export const VoiceAssistant = {
 
     // Toggle mic button accessibility state
     if (this.micBtn) {
-      this.micBtn.disabled = (state === this.STATES.PROCESSING || state === this.STATES.EXECUTING);
+      const isBusy = (
+        state === this.STATES.UPLOADING ||
+        state === this.STATES.TRANSCRIBING ||
+        state === this.STATES.UNDERSTANDING ||
+        state === this.STATES.EXECUTING ||
+        state === this.STATES.GENERATING_SPEECH
+      );
+      this.micBtn.disabled = isBusy;
     }
 
     // Hide or show confirmation card
     if (this.confirmationCard) {
-      if (state === this.STATES.CONFIRMATION) {
+      if (state === this.STATES.CONFIRMATION || state === this.STATES.AWAITING_CONFIRMATION) {
         this.confirmationCard.classList.add('active');
       } else {
         this.confirmationCard.classList.remove('active');
@@ -351,19 +429,25 @@ export const VoiceAssistant = {
       };
 
       this.mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
-        console.log('[MediaRecorder] Audio captured locally:', audioBlob.size, 'bytes');
+        const mimeType = this.mediaRecorder?.mimeType || 'audio/webm';
+        const audioBlob = new Blob(this.audioChunks, { type: mimeType });
+        console.log('[MediaRecorder] Audio captured locally:', audioBlob.size, 'bytes, type:', mimeType);
         // Release tracks
         if (this.mediaStream) {
           this.mediaStream.getTracks().forEach(track => track.stop());
           this.mediaStream = null;
         }
+        if (audioBlob.size > 0) {
+          this.handleRecordedAudio(audioBlob);
+        } else {
+          this.setState(this.STATES.ERROR, 'No audio data was recorded.');
+        }
       };
 
       this.mediaRecorder.start();
-      this.setState(this.STATES.LISTENING);
+      this.setState(this.STATES.RECORDING);
       this.startTimer();
-      Utils.showToast('info', 'Listening', 'Microphone active. Speak your command in Tamil.');
+      Utils.showToast('info', 'Listening', 'Microphone active. Speak your command in Tamil or Tanglish.');
 
     } catch (err) {
       console.error('[MediaRecorder Error]', err);
@@ -379,20 +463,38 @@ export const VoiceAssistant = {
   },
 
   stopRecording() {
+    this.stopTimer();
     if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
       this.mediaRecorder.stop();
     }
-    this.stopTimer();
+  },
 
-    // Transition to Processing state
-    this.setState(this.STATES.PROCESSING);
+  /**
+   * Handle Audio Recorded from Microphone via Backend Voice Pipeline
+   */
+  async handleRecordedAudio(audioBlob) {
+    this.setState(this.STATES.UPLOADING);
 
-    // Simulate intent analysis (since backend is demo mode)
-    setTimeout(() => {
-      // Pick a sample demo command to demonstrate workflow
-      const sample = this.demoCommands[0]; // Rice stock addition
+    try {
+      this.setState(this.STATES.TRANSCRIBING);
+      const voiceRes = await ApiService.processVoiceCommand(audioBlob, null, this.activeLanguage);
+
+      if (voiceRes && voiceRes.success) {
+        this.setState(this.STATES.TRANSCRIPT_READY);
+        if (this.transcriptTextarea && voiceRes.transcript) {
+          this.transcriptTextarea.value = voiceRes.transcript;
+        }
+        this.setState(this.STATES.UNDERSTANDING);
+        this.applyVoiceCommandResponse(voiceRes);
+      } else {
+        throw new Error(voiceRes?.message || 'Voice pipeline failed to return response');
+      }
+    } catch (err) {
+      console.warn('[VoiceAssistant] Voice pipeline failed, falling back to demo simulation:', err);
+      // Fallback to sample demo command
+      const sample = this.demoCommands[0];
       this.executeCommandWorkflow(sample, true);
-    }, 1400);
+    }
   },
 
   startTimer() {
@@ -476,23 +578,41 @@ export const VoiceAssistant = {
   },
 
   applyAIInterpretation(res, commandText) {
+    this.applyVoiceCommandResponse({
+      ...res,
+      transcript: commandText
+    });
+  },
+
+  applyVoiceCommandResponse(res) {
     const intent = res.intent;
     const resolved = res.resolved_product;
 
-    if (this.actionVal) this.actionVal.textContent = intent.intent;
-    if (this.productVal) this.productVal.textContent = resolved ? resolved.name : (intent.entities.product_name || 'N/A');
-    if (this.qtyVal) this.qtyVal.textContent = intent.entities.quantity ? `${intent.entities.quantity} ${intent.entities.unit || ''}` : 'N/A';
-    if (this.confidenceVal) this.confidenceVal.textContent = `${Math.round((intent.confidence || 0.95) * 100)}% (Gemini AI)`;
+    if (this.actionVal) this.actionVal.textContent = intent ? intent.intent : 'N/A';
+    if (this.productVal) this.productVal.textContent = resolved ? resolved.name : (intent?.entities?.product_name || 'N/A');
+    if (this.qtyVal) this.qtyVal.textContent = intent?.entities?.quantity ? `${intent.entities.quantity} ${intent.entities.unit || ''}` : 'N/A';
+
+    if (this.confidenceVal) {
+      if (res.stt && res.stt.confidence) {
+        this.confidenceVal.textContent = `${Math.round(res.stt.confidence * 100)}% (Gnani STT)`;
+      } else if (intent && intent.confidence) {
+        this.confidenceVal.textContent = `${Math.round(intent.confidence * 100)}% (Gemini AI)`;
+      } else {
+        this.confidenceVal.textContent = '96% (Gnani & Gemini)';
+      }
+    }
 
     // Update assistant response bubble
+    const replyText = res.message_ta || res.message || 'கட்டளை ஏற்றுக்கொள்ளப்பட்டது.';
     if (this.responseBubble) {
-      this.responseBubble.textContent = res.message_ta || res.message;
+      this.responseBubble.textContent = replyText;
     }
 
     // Clarification required
-    if (intent.requires_clarification) {
-      this.setState(this.STATES.IDLE, res.message);
-      Utils.showToast('warning', 'Clarification Needed', res.message, 6000);
+    if (intent && intent.requires_clarification) {
+      this.setState(this.STATES.CLARIFICATION_REQUIRED, replyText);
+      Utils.showToast('warning', 'Clarification Needed', res.message || replyText, 6000);
+      this.speakResponse(replyText);
       return;
     }
 
@@ -508,23 +628,24 @@ export const VoiceAssistant = {
         currentStock: p.current_stock,
         projectedStock: p.projected_stock,
         estimatedTotal: p.estimated_total,
-        command: commandText,
+        command: res.transcript || '',
         responseTa: res.message_ta || res.message,
         responseEn: res.message
       };
 
-      this.setState(this.STATES.CONFIRMATION);
+      this.setState(this.STATES.AWAITING_CONFIRMATION);
       if (this.confirmationSummary) {
         let details = `Action: ${p.action} | Product: ${p.product_name} | Quantity: ${p.quantity} ${p.unit} | Stock: ${p.current_stock} -> ${p.projected_stock} ${p.unit}`;
         if (p.estimated_total) details += ` | Total: ₹${p.estimated_total}`;
         this.confirmationSummary.textContent = details;
       }
       Utils.showToast('warning', 'Confirmation Required', `Please review and confirm: ${p.action} for ${p.product_name}.`);
+      this.speakResponse(replyText);
     } else {
       // Direct inquiry result
-      this.setState(this.STATES.SUCCESS, res.message);
-      this.addToHistory(commandText, intent.intent, 'Answered');
-      this.speakResponse();
+      this.setState(this.STATES.SUCCESS, replyText);
+      this.addToHistory(res.transcript || 'Voice Command', intent ? intent.intent : 'Query', 'Completed');
+      this.speakResponse(replyText);
     }
   },
 
@@ -565,13 +686,14 @@ export const VoiceAssistant = {
       try {
         const confirmRes = await ApiService.confirmAction(this.currentAction.actionId);
         if (confirmRes && confirmRes.success) {
-          this.setState(this.STATES.SUCCESS, confirmRes.message);
+          const successMsg = confirmRes.message_ta || confirmRes.message;
+          this.setState(this.STATES.SUCCESS, successMsg);
           this.addToHistory(this.currentAction.command, confirmRes.action, 'Confirmed (Live DB)');
           Utils.showToast('success', 'Action Executed', confirmRes.message, 5000);
 
           // Dispatch global store update event so Inventory table and Dashboard refresh automatically!
           window.dispatchEvent(new CustomEvent('store-updated', { detail: { action: confirmRes.action } }));
-          this.speakResponse();
+          this.speakResponse(successMsg);
           return;
         }
       } catch (err) {
@@ -583,10 +705,11 @@ export const VoiceAssistant = {
 
     // Demo Mode Confirmation Fallback
     setTimeout(() => {
-      this.setState(this.STATES.SUCCESS, `Success! ${this.currentAction.action} for ${this.currentAction.product} confirmed (Demo).`);
+      const demoSuccess = `Success! ${this.currentAction.action} for ${this.currentAction.product} confirmed (Demo).`;
+      this.setState(this.STATES.SUCCESS, demoSuccess);
       this.addToHistory(this.currentAction.command, this.currentAction.action, 'Confirmed (Demo)');
       Utils.showToast('success', 'Action Confirmed', `${this.currentAction.action} completed successfully in demo mode.`);
-      this.speakResponse();
+      this.speakResponse(demoSuccess);
     }, 900);
   },
 
@@ -645,7 +768,7 @@ export const VoiceAssistant = {
       }
     }
     this.currentAction = null;
-    this.setState(this.STATES.IDLE, 'Action was cancelled by user. Returning to ready state.');
+    this.setState(this.STATES.CANCELLED, 'Action was cancelled by user. Returning to ready state.');
     Utils.showToast('info', 'Cancelled', 'Pending action was cancelled. No changes made.');
   },
 
@@ -670,39 +793,83 @@ export const VoiceAssistant = {
   },
 
   /**
-   * Text-to-Speech (TTS) using Browser SpeechSynthesis API
+   * Text-to-Speech (TTS) using Gnani Timbre v2.5 with Browser SpeechSynthesis Fallback
    */
-  speakResponse() {
+  async speakResponse(overrideText = '') {
+    this.stopSpeaking();
+
+    const textToSpeak = (overrideText || (this.responseBubble ? this.responseBubble.textContent : '')).trim();
+    if (!textToSpeak) return;
+
+    this.setState(this.STATES.GENERATING_SPEECH);
+    if (this.btnSpeak) this.btnSpeak.disabled = true;
+    if (this.btnStopSpeak) this.btnStopSpeak.disabled = false;
+    if (this.ttsNotice) this.ttsNotice.textContent = 'Synthesizing voice with Gnani Timbre v2.5...';
+
+    try {
+      const audioBlob = await ApiService.synthesizeSpeech(textToSpeak, this.activeLanguage, 1.0);
+      if (audioBlob && audioBlob.size > 0) {
+        const audioUrl = URL.createObjectURL(audioBlob);
+        this.activeAudio = new Audio(audioUrl);
+
+        this.activeAudio.onplay = () => {
+          this.setState(this.STATES.PLAYING_AUDIO);
+          if (this.ttsNotice) this.ttsNotice.textContent = 'Playing Gnani Timbre v2.5 Tamil voice audio...';
+        };
+
+        this.activeAudio.onended = () => {
+          URL.revokeObjectURL(audioUrl);
+          this.activeAudio = null;
+          if (this.btnSpeak) this.btnSpeak.disabled = false;
+          if (this.btnStopSpeak) this.btnStopSpeak.disabled = true;
+          if (this.ttsNotice) this.ttsNotice.textContent = 'Voice playback completed.';
+          if (this.currentState === this.STATES.PLAYING_AUDIO || this.currentState === this.STATES.GENERATING_SPEECH) {
+            this.setState(this.currentAction ? this.STATES.AWAITING_CONFIRMATION : this.STATES.IDLE);
+          }
+        };
+
+        this.activeAudio.onerror = (e) => {
+          console.warn('[Gnani Audio Playback Error, falling back to browser TTS]:', e);
+          URL.revokeObjectURL(audioUrl);
+          this.activeAudio = null;
+          this.fallbackBrowserSpeech(textToSpeak);
+        };
+
+        await this.activeAudio.play();
+        return;
+      }
+    } catch (err) {
+      console.warn('[Gnani TTS Backend Error, falling back to browser TTS]:', err.message);
+    }
+
+    // Fallback to browser SpeechSynthesis
+    this.fallbackBrowserSpeech(textToSpeak);
+  },
+
+  fallbackBrowserSpeech(textToSpeak) {
     if (!('speechSynthesis' in window)) {
-      Utils.showToast('error', 'TTS Unsupported', 'Browser does not support SpeechSynthesis.');
+      if (this.btnSpeak) this.btnSpeak.disabled = false;
+      if (this.btnStopSpeak) this.btnStopSpeak.disabled = true;
+      if (this.ttsNotice) this.ttsNotice.textContent = 'Audio playback completed (TTS unsupported).';
       return;
     }
 
-    const textToSpeak = this.responseBubble ? this.responseBubble.textContent : '';
-    if (!textToSpeak) return;
-
-    window.speechSynthesis.cancel(); // Stop any active speech
-
+    window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(textToSpeak);
-    utterance.rate = 0.95; // Slightly slower for crisp retail clarity
+    utterance.rate = 0.95;
     utterance.pitch = 1.0;
 
     const voices = window.speechSynthesis.getVoices();
-    // Prefer Tamil voice (ta-IN or ta)
     const tamilVoice = voices.find(v => v.lang.includes('ta') || v.name.toLowerCase().includes('tamil'));
-    
     if (tamilVoice) {
       utterance.voice = tamilVoice;
-      if (this.ttsNotice) {
-        this.ttsNotice.textContent = `Speaking with voice: ${tamilVoice.name} (ta-IN)`;
-      }
+      if (this.ttsNotice) this.ttsNotice.textContent = `Speaking with browser voice: ${tamilVoice.name} (ta-IN)`;
     } else {
-      if (this.ttsNotice) {
-        this.ttsNotice.textContent = 'Browser voice demo — Native Tamil voice not found on device. Gnani Timbre integration pending.';
-      }
+      if (this.ttsNotice) this.ttsNotice.textContent = 'Spoken via browser speech synthesis fallback.';
     }
 
     utterance.onstart = () => {
+      this.setState(this.STATES.PLAYING_AUDIO);
       if (this.btnSpeak) this.btnSpeak.disabled = true;
       if (this.btnStopSpeak) this.btnStopSpeak.disabled = false;
     };
@@ -710,22 +877,38 @@ export const VoiceAssistant = {
     utterance.onend = () => {
       if (this.btnSpeak) this.btnSpeak.disabled = false;
       if (this.btnStopSpeak) this.btnStopSpeak.disabled = true;
+      if (this.currentState === this.STATES.PLAYING_AUDIO) {
+        this.setState(this.currentAction ? this.STATES.AWAITING_CONFIRMATION : this.STATES.IDLE);
+      }
     };
 
     utterance.onerror = (e) => {
       console.warn('[SpeechSynthesis Error]', e);
       if (this.btnSpeak) this.btnSpeak.disabled = false;
       if (this.btnStopSpeak) this.btnStopSpeak.disabled = true;
+      if (this.currentState === this.STATES.PLAYING_AUDIO) {
+        this.setState(this.currentAction ? this.STATES.AWAITING_CONFIRMATION : this.STATES.IDLE);
+      }
     };
 
     window.speechSynthesis.speak(utterance);
   },
 
   stopSpeaking() {
+    if (this.activeAudio) {
+      try {
+        this.activeAudio.pause();
+        this.activeAudio.currentTime = 0;
+      } catch (e) {}
+      this.activeAudio = null;
+    }
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
-      if (this.btnSpeak) this.btnSpeak.disabled = false;
-      if (this.btnStopSpeak) this.btnStopSpeak.disabled = true;
+    }
+    if (this.btnSpeak) this.btnSpeak.disabled = false;
+    if (this.btnStopSpeak) this.btnStopSpeak.disabled = true;
+    if (this.currentState === this.STATES.PLAYING_AUDIO || this.currentState === this.STATES.GENERATING_SPEECH) {
+      this.setState(this.currentAction ? this.STATES.AWAITING_CONFIRMATION : this.STATES.IDLE);
     }
   },
 

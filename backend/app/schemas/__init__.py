@@ -56,6 +56,15 @@ from backend.app.schemas.ai import (
     AIStatusResponse,
 )
 
+from backend.app.schemas.voice import (
+    TranscribeResponse,
+    VoiceCommandResponse,
+    SpeakRequest,
+    VoiceStatusResponse,
+    VoiceProcessRequest,
+    VoiceProcessResponse,
+)
+
 __all__ = [
     "ProductBase",
     "ProductCreate",
@@ -99,5 +108,11 @@ __all__ = [
     "CancelActionRequest",
     "CancelActionResponse",
     "AIStatusResponse",
+    "TranscribeResponse",
+    "VoiceCommandResponse",
+    "SpeakRequest",
+    "VoiceStatusResponse",
+    "VoiceProcessRequest",
+    "VoiceProcessResponse",
 ]
 

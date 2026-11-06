@@ -43,6 +43,19 @@ from backend.app.services.ai_service import (
     pending_store,
 )
 
+from backend.app.services.gnani_stt_service import (
+    gnani_stt_service,
+    GnaniSTTService,
+)
+from backend.app.services.gnani_tts_service import (
+    gnani_tts_service,
+    GnaniTTSService,
+)
+from backend.app.services.voice_service import (
+    voice_service,
+    VoicePipelineService,
+)
+
 __all__ = [
     "get_products",
     "get_product_by_id",
@@ -71,4 +84,10 @@ __all__ = [
     "confirm_pending_action",
     "cancel_pending_action",
     "pending_store",
+    "gnani_stt_service",
+    "GnaniSTTService",
+    "gnani_tts_service",
+    "GnaniTTSService",
+    "voice_service",
+    "VoicePipelineService",
 ]
