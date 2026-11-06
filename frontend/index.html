@@ -18,6 +18,8 @@
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/dashboard.css">
   <link rel="stylesheet" href="css/voice.css">
+  <link rel="stylesheet" href="css/inventory.css">
+  <link rel="stylesheet" href="css/sales.css">
   <link rel="stylesheet" href="css/responsive.css">
 
   <!-- Chart.js for Responsive Analytics Visualizations -->
@@ -763,39 +765,747 @@
           </div>
         </section>
 
+        <!-- ==================================================================
+             VIEW: INVENTORY MANAGEMENT (PHASE 3 COMPLETE)
+             ================================================================== -->
         <section id="view-inventory" class="view-pane">
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title-wrap">
-                <h2 class="card-title">Inventory Management (சரக்கு இருப்பு மேலாண்மை)</h2>
-                <span class="card-subtitle">Phase 4: Full product catalogue, categories, stock adjustments & units</span>
+          <div class="inventory-page-wrapper">
+
+            <!-- Inventory Header -->
+            <div class="inventory-header-row">
+              <div class="inventory-header-titles">
+                <h2 class="inventory-main-title">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+                  <span>Inventory Management (சரக்கு இருப்பு மேலாண்மை)</span>
+                </h2>
+                <p class="inventory-main-subtitle">Manage products, stock levels, pricing, and inventory movements.</p>
+              </div>
+              <div class="inventory-header-actions">
+                <button class="btn btn-ghost text-muted btn-sm" id="inv-btn-reset-demo" title="Reset to default demo data">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                  <span>Reset Demo Data</span>
+                </button>
+                <button class="btn btn-outline btn-sm" id="inv-btn-export-csv" title="Export filtered inventory to CSV">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                  <span>Export CSV</span>
+                </button>
+                <button class="btn btn-primary btn-sm" id="inv-btn-open-add">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
+                  <span>Add Product (பொருள் சேர்க்க)</span>
+                </button>
               </div>
             </div>
-            <div class="card-body" style="padding: 3rem; text-align: center;">
-              <p style="color: var(--color-text-secondary); margin-bottom: 1.5rem;">
-                Comprehensive inventory management page with 8 Kirana categories and 7 units will be developed in Phase 4.
-              </p>
-              <button class="btn btn-primary" onclick="window.location.hash='dashboard'">Return to Dashboard</button>
+
+            <!-- 4 Inventory KPI Cards -->
+            <div class="inventory-kpi-grid">
+              <!-- 1. Total Products -->
+              <div class="inv-kpi-card">
+                <div class="kpi-top-row">
+                  <span class="kpi-label">Total Products</span>
+                  <div class="kpi-icon-wrapper kpi-icon-teal">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/></svg>
+                  </div>
+                </div>
+                <div class="kpi-value-row">
+                  <span class="kpi-value" id="inv-kpi-total-products">0</span>
+                </div>
+                <div class="kpi-trend-row">
+                  <span class="trend-badge neutral">SKUs Active</span>
+                  <span class="trend-subtext">across store</span>
+                </div>
+              </div>
+
+              <!-- 2. Total Stock Value -->
+              <div class="inv-kpi-card">
+                <div class="kpi-top-row">
+                  <span class="kpi-label">Total Stock Value</span>
+                  <div class="kpi-icon-wrapper kpi-icon-blue">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                  </div>
+                </div>
+                <div class="kpi-value-row">
+                  <span class="kpi-value" id="inv-kpi-stock-value">₹0</span>
+                </div>
+                <div class="kpi-trend-row">
+                  <span class="trend-badge up">Asset Value</span>
+                  <span class="trend-subtext">at purchase cost</span>
+                </div>
+              </div>
+
+              <!-- 3. Low Stock Products -->
+              <div class="inv-kpi-card">
+                <div class="kpi-top-row">
+                  <span class="kpi-label">Low Stock Products</span>
+                  <div class="kpi-icon-wrapper kpi-icon-amber">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+                  </div>
+                </div>
+                <div class="kpi-value-row">
+                  <span class="kpi-value text-warning" id="inv-kpi-low-stock">0</span>
+                </div>
+                <div class="kpi-trend-row">
+                  <span class="trend-badge warning">Order Soon</span>
+                  <span class="trend-subtext">below threshold</span>
+                </div>
+              </div>
+
+              <!-- 4. Out of Stock -->
+              <div class="inv-kpi-card">
+                <div class="kpi-top-row">
+                  <span class="kpi-label">Out of Stock</span>
+                  <div class="kpi-icon-wrapper" style="background: #FEE2E2; color: var(--color-danger);">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" x2="9" y1="9" y2="15"/><line x1="9" x2="15" y1="9" y2="15"/></svg>
+                  </div>
+                </div>
+                <div class="kpi-value-row">
+                  <span class="kpi-value text-danger" id="inv-kpi-out-of-stock">0</span>
+                </div>
+                <div class="kpi-trend-row">
+                  <span class="trend-badge down">Stockout</span>
+                  <span class="trend-subtext">zero available</span>
+                </div>
+              </div>
             </div>
+
+            <!-- Toolbar: Search & Multi-Filters -->
+            <div class="inventory-toolbar">
+              <div class="filter-controls-group">
+                <div class="search-input-wrap">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                  <input type="text" class="form-input" id="inv-search-input" placeholder="Search product name or SKU...">
+                </div>
+
+                <select class="filter-select" id="inv-category-filter">
+                  <option value="all">All Categories</option>
+                  <option value="Grains">Grains (தானியங்கள்)</option>
+                  <option value="Pulses">Pulses (பருப்பு வகைகள்)</option>
+                  <option value="Grocery">Grocery (மளிகை)</option>
+                  <option value="Oils">Oils (எண்ணெய்)</option>
+                  <option value="Spices">Spices (மசாலா)</option>
+                  <option value="Dairy">Dairy (பால்)</option>
+                  <option value="Beverages">Beverages (பானங்கள்)</option>
+                  <option value="Snacks">Snacks (தின்பண்டங்கள்)</option>
+                  <option value="Other">Other</option>
+                </select>
+
+                <select class="filter-select" id="inv-status-filter">
+                  <option value="all">All Stock Status</option>
+                  <option value="in-stock">In Stock (இருப்பு உள்ளது)</option>
+                  <option value="low-stock">Low Stock (குறைந்த இருப்பு)</option>
+                  <option value="out-of-stock">Out of Stock (இருப்பு இல்லை)</option>
+                </select>
+
+                <select class="filter-select" id="inv-sort-filter">
+                  <option value="name-asc">Sort: Name (A-Z)</option>
+                  <option value="name-desc">Sort: Name (Z-A)</option>
+                  <option value="qty-desc">Sort: Qty (High to Low)</option>
+                  <option value="qty-asc">Sort: Qty (Low to High)</option>
+                  <option value="price-desc">Sort: Price (High to Low)</option>
+                  <option value="price-asc">Sort: Price (Low to High)</option>
+                </select>
+
+                <button class="btn btn-sm btn-ghost" id="inv-btn-reset-filters" title="Reset search & filters">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                  <span>Reset</span>
+                </button>
+              </div>
+
+              <span class="badge-pill neutral" id="inv-table-count-badge">0 items</span>
+            </div>
+
+            <!-- Product Inventory Table -->
+            <div class="card" style="overflow: hidden;">
+              <div class="table-wrapper" style="border: none; border-radius: 0;">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Product</th>
+                      <th>SKU</th>
+                      <th>Category</th>
+                      <th>Quantity</th>
+                      <th>Unit</th>
+                      <th>Purchase Price</th>
+                      <th>Selling Price</th>
+                      <th>Status</th>
+                      <th style="text-align: right;">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="inventory-table-body">
+                    <!-- Populated dynamically by inventory.js -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
           </div>
         </section>
 
+        <!-- ==================================================================
+             VIEW: SALES & ORDERS (PHASE 3 COMPLETE)
+             ================================================================== -->
         <section id="view-sales" class="view-pane">
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title-wrap">
-                <h2 class="card-title">Sales & Billing Records (விற்பனை மற்றும் பில்கள்)</h2>
-                <span class="card-subtitle">Phase 5: Counter POS, printable receipts, and billing history</span>
+          <div class="sales-page-wrapper">
+
+            <!-- Sales Header -->
+            <div class="sales-header-row">
+              <div class="inventory-header-titles">
+                <h2 class="sales-main-title">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+                  <span>Sales & Orders (விற்பனை மற்றும் பில்கள்)</span>
+                </h2>
+                <p class="sales-main-subtitle">Record counter sales, monitor invoices, and print receipts.</p>
+              </div>
+              <div class="inventory-header-actions">
+                <button class="btn btn-primary btn-sm" id="sales-btn-open-new">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
+                  <span>New Sale (புதிய விற்பனை)</span>
+                </button>
               </div>
             </div>
-            <div class="card-body" style="padding: 3rem; text-align: center;">
-              <p style="color: var(--color-text-secondary); margin-bottom: 1.5rem;">
-                Sales billing register with receipt generation and filtering will be developed in Phase 5.
-              </p>
-              <button class="btn btn-primary" onclick="window.location.hash='dashboard'">Return to Dashboard</button>
+
+            <!-- 4 Sales KPI Cards -->
+            <div class="sales-kpi-grid">
+              <!-- 1. Today's Sales -->
+              <div class="sales-kpi-card">
+                <div class="kpi-top-row">
+                  <span class="kpi-label">Today's Sales</span>
+                  <div class="kpi-icon-wrapper kpi-icon-blue">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                  </div>
+                </div>
+                <div class="kpi-value-row">
+                  <span class="kpi-value text-primary" id="sales-kpi-today">₹0</span>
+                </div>
+                <div class="kpi-trend-row">
+                  <span class="trend-badge up">+12.4%</span>
+                  <span class="trend-subtext">today's counter intake</span>
+                </div>
+              </div>
+
+              <!-- 2. Total Revenue -->
+              <div class="sales-kpi-card">
+                <div class="kpi-top-row">
+                  <span class="kpi-label">Total Revenue</span>
+                  <div class="kpi-icon-wrapper kpi-icon-green">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 2v5h5"/><path d="M21 6v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10l6 6z"/><path d="M8 13h8M8 17h5"/></svg>
+                  </div>
+                </div>
+                <div class="kpi-value-row">
+                  <span class="kpi-value" id="sales-kpi-total-revenue">₹0</span>
+                </div>
+                <div class="kpi-trend-row">
+                  <span class="trend-badge up">Completed</span>
+                  <span class="trend-subtext">all bills recorded</span>
+                </div>
+              </div>
+
+              <!-- 3. Total Transactions -->
+              <div class="sales-kpi-card">
+                <div class="kpi-top-row">
+                  <span class="kpi-label">Total Transactions</span>
+                  <div class="kpi-icon-wrapper kpi-icon-purple">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+                  </div>
+                </div>
+                <div class="kpi-value-row">
+                  <span class="kpi-value" id="sales-kpi-total-tx">0</span>
+                </div>
+                <div class="kpi-trend-row">
+                  <span class="trend-badge neutral">Invoices</span>
+                  <span class="trend-subtext">counter transactions</span>
+                </div>
+              </div>
+
+              <!-- 4. Average Order Value -->
+              <div class="sales-kpi-card">
+                <div class="kpi-top-row">
+                  <span class="kpi-label">Average Order Value</span>
+                  <div class="kpi-icon-wrapper kpi-icon-amber">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+                  </div>
+                </div>
+                <div class="kpi-value-row">
+                  <span class="kpi-value" id="sales-kpi-aov">₹0</span>
+                </div>
+                <div class="kpi-trend-row">
+                  <span class="trend-badge neutral">Basket Size</span>
+                  <span class="trend-subtext">average per customer</span>
+                </div>
+              </div>
             </div>
+
+            <!-- Toolbar: Search & Multi-Filters -->
+            <div class="sales-toolbar">
+              <div class="filter-controls-group">
+                <div class="search-input-wrap">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                  <input type="text" class="form-input" id="sales-search-input" placeholder="Search bill ID, product, or customer...">
+                </div>
+
+                <select class="filter-select" id="sales-date-filter">
+                  <option value="all">All Dates</option>
+                  <option value="today">Today (இன்று)</option>
+                  <option value="yesterday">Yesterday (நேற்று)</option>
+                  <option value="week">Past 7 Days (கடந்த 7 நாட்கள்)</option>
+                </select>
+
+                <select class="filter-select" id="sales-payment-filter">
+                  <option value="all">All Payments</option>
+                  <option value="Cash">Cash (ரொக்கம்)</option>
+                  <option value="UPI">UPI / GPay (ஆன்லைன்)</option>
+                  <option value="Card">Card (கார்டு)</option>
+                  <option value="Credit">Khata Credit (கடன்)</option>
+                </select>
+
+                <select class="filter-select" id="sales-status-filter">
+                  <option value="all">All Statuses</option>
+                  <option value="Completed">Completed (முழுமை)</option>
+                  <option value="Pending">Pending (நிலுவை)</option>
+                  <option value="Cancelled">Cancelled (ரத்து)</option>
+                </select>
+
+                <select class="filter-select" id="sales-sort-filter">
+                  <option value="date-desc">Sort: Date (Newest first)</option>
+                  <option value="date-asc">Sort: Date (Oldest first)</option>
+                  <option value="amount-desc">Sort: Amount (High to Low)</option>
+                  <option value="amount-asc">Sort: Amount (Low to High)</option>
+                </select>
+
+                <button class="btn btn-sm btn-ghost" id="sales-btn-reset-filters" title="Reset sales filters">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                  <span>Reset</span>
+                </button>
+              </div>
+
+              <span class="badge-pill neutral" id="sales-table-count-badge">0 bills</span>
+            </div>
+
+            <!-- Sales Records Table -->
+            <div class="card" style="overflow: hidden;">
+              <div class="table-wrapper" style="border: none; border-radius: 0;">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Bill #</th>
+                      <th>Date & Time</th>
+                      <th>Item / Product</th>
+                      <th>Quantity</th>
+                      <th>Unit Rate</th>
+                      <th>Total</th>
+                      <th>Payment</th>
+                      <th>Status</th>
+                      <th style="text-align: right;">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="sales-table-body">
+                    <!-- Populated dynamically by sales.js -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
           </div>
         </section>
+
+        <!-- ==================================================================
+             MODALS: INVENTORY MANAGEMENT
+             ================================================================== -->
+        <!-- Add Product Modal -->
+        <div class="modal-backdrop" id="modal-add-product" role="dialog" aria-modal="true">
+          <div class="modal-dialog">
+            <div class="modal-header">
+              <h3 class="modal-title">Add New Product (பொருள் சேர்க்க)</h3>
+              <button class="modal-close-btn" data-close-modal aria-label="Close modal">&times;</button>
+            </div>
+            <form id="form-add-product">
+              <div class="modal-body">
+                <div class="modal-form-grid">
+                  <div class="form-group modal-form-full">
+                    <label class="form-label">Product Name (English) *</label>
+                    <input type="text" class="form-input" id="add-product-name-en" placeholder="e.g. Ponni Boiled Rice" required>
+                  </div>
+                  <div class="form-group modal-form-full">
+                    <label class="form-label">Product Name (Tamil / தமிழ்)</label>
+                    <input type="text" class="form-input" id="add-product-name-ta" placeholder="எ.கா. பொன்னி புழுங்கல் அரிசி">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">SKU / Code *</label>
+                    <input type="text" class="form-input" id="add-product-sku" placeholder="SKU-GRO-001" required>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Category *</label>
+                    <select class="form-select" id="add-product-category" required>
+                      <option value="Grains">Grains (தானியங்கள்)</option>
+                      <option value="Pulses">Pulses (பருப்பு வகைகள்)</option>
+                      <option value="Grocery" selected>Grocery (மளிகை)</option>
+                      <option value="Oils">Oils (எண்ணெய்)</option>
+                      <option value="Spices">Spices (மசாலா)</option>
+                      <option value="Dairy">Dairy (பால்)</option>
+                      <option value="Beverages">Beverages (பானங்கள்)</option>
+                      <option value="Snacks">Snacks (தின்பண்டங்கள்)</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Initial Stock Quantity *</label>
+                    <input type="number" class="form-input" id="add-product-stock" value="10" min="0" step="any" required>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Unit of Measure *</label>
+                    <select class="form-select" id="add-product-unit" required>
+                      <option value="kg" selected>kg (கிலோ)</option>
+                      <option value="g">g (கிராம்)</option>
+                      <option value="litre">litre (லிட்டர்)</option>
+                      <option value="ml">ml (மில்லி)</option>
+                      <option value="piece">piece (துண்டு)</option>
+                      <option value="packet">packet (பாக்கெட்)</option>
+                      <option value="box">box (பெட்டி)</option>
+                      <option value="bag">bag (மூட்டை)</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Purchase Price (₹) *</label>
+                    <input type="number" class="form-input" id="add-product-purchase-price" value="40" min="0" step="0.5" required>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Selling Price (₹) *</label>
+                    <input type="number" class="form-input" id="add-product-selling-price" value="50" min="0" step="0.5" required>
+                  </div>
+                  <div class="form-group modal-form-full">
+                    <label class="form-label">Minimum Stock Alert Threshold *</label>
+                    <input type="number" class="form-input" id="add-product-min-stock" value="5" min="1" required>
+                    <span class="form-helper">Triggers low stock alert when inventory reaches this level.</span>
+                  </div>
+                  <div class="form-group modal-form-full">
+                    <label class="form-label">Optional Description</label>
+                    <input type="text" class="form-input" id="add-product-desc" placeholder="Brand, origin, grade...">
+                  </div>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-outline" data-close-modal>Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Product (சேமிக்க)</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Edit Product Modal -->
+        <div class="modal-backdrop" id="modal-edit-product" role="dialog" aria-modal="true">
+          <div class="modal-dialog">
+            <div class="modal-header">
+              <h3 class="modal-title">Edit Product Details (பொருள் மாற்ற)</h3>
+              <button class="modal-close-btn" data-close-modal aria-label="Close modal">&times;</button>
+            </div>
+            <form id="form-edit-product">
+              <input type="hidden" id="edit-prod-id">
+              <div class="modal-body">
+                <div class="modal-form-grid">
+                  <div class="form-group modal-form-full">
+                    <label class="form-label">Product Name (English) *</label>
+                    <input type="text" class="form-input" id="edit-prod-name-en" required>
+                  </div>
+                  <div class="form-group modal-form-full">
+                    <label class="form-label">Product Name (Tamil / தமிழ்)</label>
+                    <input type="text" class="form-input" id="edit-prod-name-ta">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">SKU / Code *</label>
+                    <input type="text" class="form-input" id="edit-prod-sku" required>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Category *</label>
+                    <select class="form-select" id="edit-prod-category" required>
+                      <option value="Grains">Grains (தானியங்கள்)</option>
+                      <option value="Pulses">Pulses (பருப்பு வகைகள்)</option>
+                      <option value="Grocery">Grocery (மளிகை)</option>
+                      <option value="Oils">Oils (எண்ணெய்)</option>
+                      <option value="Spices">Spices (மசாலா)</option>
+                      <option value="Dairy">Dairy (பால்)</option>
+                      <option value="Beverages">Beverages (பானங்கள்)</option>
+                      <option value="Snacks">Snacks (தின்பண்டங்கள்)</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Stock Quantity *</label>
+                    <input type="number" class="form-input" id="edit-prod-stock" min="0" step="any" required>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Unit of Measure *</label>
+                    <select class="form-select" id="edit-prod-unit" required>
+                      <option value="kg">kg (கிலோ)</option>
+                      <option value="g">g (கிராம்)</option>
+                      <option value="litre">litre (லிட்டர்)</option>
+                      <option value="ml">ml (மில்லி)</option>
+                      <option value="piece">piece (துண்டு)</option>
+                      <option value="packet">packet (பாக்கெட்)</option>
+                      <option value="box">box (பெட்டி)</option>
+                      <option value="bag">bag (மூட்டை)</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Purchase Price (₹) *</label>
+                    <input type="number" class="form-input" id="edit-prod-purchase-price" min="0" step="0.5" required>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Selling Price (₹) *</label>
+                    <input type="number" class="form-input" id="edit-prod-selling-price" min="0" step="0.5" required>
+                  </div>
+                  <div class="form-group modal-form-full">
+                    <label class="form-label">Minimum Stock Alert Threshold *</label>
+                    <input type="number" class="form-input" id="edit-prod-min-stock" min="1" required>
+                  </div>
+                  <div class="form-group modal-form-full">
+                    <label class="form-label">Optional Description</label>
+                    <input type="text" class="form-input" id="edit-prod-desc">
+                  </div>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-outline" data-close-modal>Cancel</button>
+                <button type="submit" class="btn btn-primary">Update Product</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Delete Confirmation Modal -->
+        <div class="modal-backdrop" id="modal-delete-product" role="dialog" aria-modal="true">
+          <div class="modal-dialog" style="max-width: 440px;">
+            <div class="modal-header">
+              <h3 class="modal-title" style="color: var(--color-danger);">Delete Product</h3>
+              <button class="modal-close-btn" data-close-modal aria-label="Close modal">&times;</button>
+            </div>
+            <div class="modal-body" style="text-align: center; padding: var(--space-6);">
+              <div style="width: 52px; height: 52px; border-radius: 50%; background: #FEE2E2; color: var(--color-danger); display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              </div>
+              <h4 style="font-size: 1.125rem; font-weight: 700; margin-bottom: 0.5rem;">Are you sure?</h4>
+              <p style="font-size: 0.875rem; color: var(--color-text-secondary); margin-bottom: 1rem;">
+                This will delete <strong id="delete-product-name-display">Product</strong> from your store catalog. This demo action cannot be undone.
+              </p>
+            </div>
+            <div class="modal-footer" style="justify-content: center;">
+              <button class="btn btn-outline" data-close-modal>Cancel</button>
+              <button class="btn btn-danger" id="btn-confirm-delete-product">Confirm Delete (நீக்கு)</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stock Adjustment Modal -->
+        <div class="modal-backdrop" id="modal-adjust-stock" role="dialog" aria-modal="true">
+          <div class="modal-dialog">
+            <div class="modal-header">
+              <h3 class="modal-title">Stock Adjustment (இருப்பு மாற்றம்)</h3>
+              <button class="modal-close-btn" data-close-modal aria-label="Close modal">&times;</button>
+            </div>
+            <form id="form-adjust-stock">
+              <div class="modal-body">
+                <div style="font-size: 0.9375rem; font-weight: 700; color: var(--color-text-primary); margin-bottom: var(--space-3);" id="adjust-product-name">
+                  Product Name
+                </div>
+
+                <div class="stock-projection-card">
+                  <div class="projection-col">
+                    <span class="projection-label">Current Stock</span>
+                    <span class="projection-val" id="adjust-current-stock">0 kg</span>
+                  </div>
+                  <div style="font-size: 1.25rem; color: #93C5FD;">&rarr;</div>
+                  <div class="projection-col">
+                    <span class="projection-label">Projected Stock</span>
+                    <span class="projection-val text-success" id="adjust-projected-stock">0 kg</span>
+                  </div>
+                </div>
+
+                <div class="modal-form-grid" style="margin-top: var(--space-4);">
+                  <div class="form-group">
+                    <label class="form-label">Adjustment Type *</label>
+                    <select class="form-select" id="adjust-type-select">
+                      <option value="Add Stock" selected>Add Stock (+ சரக்கு சேர்க்க)</option>
+                      <option value="Remove Stock">Remove Stock (- சரக்கு குறைக்க)</option>
+                      <option value="Set Current Stock">Set Current Stock (= சரியான இருப்பு)</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Adjustment Quantity *</label>
+                    <input type="number" class="form-input" id="adjust-quantity-input" value="5" min="0.1" step="any" required>
+                  </div>
+                  <div class="form-group modal-form-full">
+                    <label class="form-label">Reason *</label>
+                    <select class="form-select" id="adjust-reason-select">
+                      <option value="Purchase" selected>Distributor Purchase Delivery</option>
+                      <option value="Sale">Direct Counter Sale</option>
+                      <option value="Damaged">Damaged / Broken in Store</option>
+                      <option value="Expired">Expired Goods</option>
+                      <option value="Manual Correction">Manual Physical Stock Count Correction</option>
+                      <option value="Other">Other Reason</option>
+                    </select>
+                  </div>
+                  <div class="form-group modal-form-full">
+                    <label class="form-label">Notes (Optional)</label>
+                    <input type="text" class="form-input" id="adjust-notes-input" placeholder="Supplier invoice ref or remarks...">
+                  </div>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-outline" data-close-modal>Cancel</button>
+                <button type="submit" class="btn btn-primary">Apply Adjustment (மாற்று)</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Product Details Modal -->
+        <div class="modal-backdrop" id="modal-product-details" role="dialog" aria-modal="true">
+          <div class="modal-dialog">
+            <div class="modal-header">
+              <h3 class="modal-title">Product Details (பொருள் விவரங்கள்)</h3>
+              <button class="modal-close-btn" data-close-modal aria-label="Close modal">&times;</button>
+            </div>
+            <div class="modal-body" id="product-details-content">
+              <!-- Dynamically populated -->
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-outline" data-close-modal>Close</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================================================================
+             MODALS: SALES & ORDERS
+             ================================================================== -->
+        <!-- New Sale Modal -->
+        <div class="modal-backdrop" id="modal-new-sale" role="dialog" aria-modal="true">
+          <div class="modal-dialog">
+            <div class="modal-header">
+              <h3 class="modal-title">Record New Sale (புதிய பில் விற்பனை)</h3>
+              <button class="modal-close-btn" data-close-modal aria-label="Close modal">&times;</button>
+            </div>
+            <form id="form-new-sale">
+              <div class="modal-body">
+                <div class="form-group">
+                  <label class="form-label">Select Product *</label>
+                  <select class="form-select" id="sale-product-select" required>
+                    <!-- Populated dynamically -->
+                  </select>
+                  <div class="product-stock-hint" id="sale-stock-hint">Select a product to check stock.</div>
+                </div>
+
+                <div class="modal-form-grid">
+                  <div class="form-group">
+                    <label class="form-label">Quantity to Sell *</label>
+                    <input type="number" class="form-input" id="sale-quantity-input" value="1" min="0.1" step="any" required>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Unit Price (₹) *</label>
+                    <input type="number" class="form-input" id="sale-price-input" min="0" step="0.5" required>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Payment Method *</label>
+                    <select class="form-select" id="sale-payment-method">
+                      <option value="Cash" selected>Cash (ரொக்கம்)</option>
+                      <option value="UPI">UPI / GPay (ஆன்லைன்)</option>
+                      <option value="Card">Debit / Credit Card</option>
+                      <option value="Credit">Khata Credit (கடன் கணக்கு)</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Customer Name</label>
+                    <input type="text" class="form-input" id="sale-customer-input" placeholder="e.g. Walk-in or Murugan">
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Notes (Optional)</label>
+                  <input type="text" class="form-input" id="sale-notes-input" placeholder="Billing remarks...">
+                </div>
+
+                <div class="total-calc-box">
+                  <div class="total-calc-label">Total Bill Amount</div>
+                  <div class="total-calc-amount" id="sale-total-display">₹0</div>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-outline" data-close-modal>Cancel</button>
+                <button type="submit" class="btn btn-primary">Review & Confirm Sale &rarr;</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Sale Confirmation Modal -->
+        <div class="modal-backdrop" id="modal-confirm-sale" role="dialog" aria-modal="true">
+          <div class="modal-dialog" style="max-width: 480px;">
+            <div class="modal-header">
+              <h3 class="modal-title" style="color: #92400E;">Confirm Transaction</h3>
+              <button class="modal-close-btn" data-close-modal aria-label="Close modal">&times;</button>
+            </div>
+            <div class="modal-body">
+              <div class="sale-confirmation-summary">
+                <div style="font-weight: 700; font-size: 0.9375rem; color: #92400E; margin-bottom: 4px;">Sale Overview:</div>
+                <div style="font-size: 0.875rem; color: #0F172A;" id="confirm-sale-summary">Product • 1 kg @ ₹50 = ₹50 (Cash)</div>
+              </div>
+
+              <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: var(--radius-md); padding: var(--space-3); margin-bottom: var(--space-4);">
+                <div class="stock-delta-row">
+                  <span class="text-muted">Stock Before Sale:</span>
+                  <span id="confirm-stock-before">0 kg</span>
+                </div>
+                <div class="stock-delta-row">
+                  <span class="text-muted">Stock After Sale:</span>
+                  <span id="confirm-stock-after" class="text-success text-semibold">0 kg</span>
+                </div>
+              </div>
+
+              <div style="font-size: 0.75rem; color: var(--color-text-secondary); text-align: center;">
+                ⚡ Demo Mode: Confirming will deduct inventory and add a new transaction to the sales register.
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-outline" data-close-modal>Back to Edit</button>
+              <button class="btn btn-success" id="btn-final-confirm-sale">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>Confirm & Record Sale</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Transaction Details Modal -->
+        <div class="modal-backdrop" id="modal-sale-details" role="dialog" aria-modal="true">
+          <div class="modal-dialog">
+            <div class="modal-header">
+              <h3 class="modal-title">Transaction Details (பில் விவரம்)</h3>
+              <button class="modal-close-btn" data-close-modal aria-label="Close modal">&times;</button>
+            </div>
+            <div class="modal-body" id="sale-details-content">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Printable Receipt Modal -->
+        <div class="modal-backdrop" id="modal-receipt-preview" role="dialog" aria-modal="true">
+          <div class="modal-dialog" style="max-width: 480px;">
+            <div class="modal-header">
+              <h3 class="modal-title">Customer Receipt Preview</h3>
+              <button class="modal-close-btn" data-close-modal aria-label="Close modal">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: var(--space-4);">
+              <div id="printable-receipt-area">
+                <!-- Dynamically populated printable receipt -->
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-outline" data-close-modal>Close</button>
+              <button class="btn btn-primary" id="btn-print-receipt-now">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
+                <span>Print Receipt (பில் அச்சிடு)</span>
+              </button>
+            </div>
+          </div>
+        </div>
 
         <section id="view-reports" class="view-pane">
           <div class="card">

@@ -5,6 +5,7 @@
 
 import { Utils } from './utils.js';
 import { ApiService } from './api.js';
+import { Store } from './store.js';
 
 export const Dashboard = {
   chartInstance: null,
@@ -62,14 +63,16 @@ export const Dashboard = {
   },
 
   init() {
-    this.renderKPIs();
+    this.syncFromLocalStore();
     this.initChart();
-    this.renderLowStock();
-    this.renderRecentTransactions();
-    this.renderTopProducts();
     this.bindChartControls();
     this.updateClockAndDate();
     this.fetchLiveDashboardData();
+
+    // Re-render when shared store changes (from inventory or sales actions)
+    window.addEventListener('store-updated', () => {
+      this.syncFromLocalStore();
+    });
 
     // Re-render when language toggle occurs
     window.addEventListener('language-changed', () => {
@@ -78,6 +81,61 @@ export const Dashboard = {
       this.renderTopProducts();
       this.updateChartData();
     });
+  },
+
+  syncFromLocalStore() {
+    const products = Store.getProducts();
+    const sales = Store.getSales();
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    let todayRev = 0;
+    sales.forEach(s => {
+      if (s.date && s.date.slice(0, 10) === todayStr) {
+        todayRev += Number(s.total_amount) || 0;
+      }
+    });
+
+    const lowStockList = [];
+    products.forEach(p => {
+      const status = Store.calculateStatus(p);
+      if (status === 'Low Stock' || status === 'Out of Stock') {
+        lowStockList.push({
+          id: p.sku || `PRD-${p.id}`,
+          nameEn: p.name_en,
+          nameTa: p.name_ta || p.name_en,
+          category: p.category,
+          stock: p.stock,
+          minStock: p.min_stock,
+          unit: p.unit,
+          status: status === 'Out of Stock' ? 'critical' : 'warning'
+        });
+      }
+    });
+
+    this.data.kpis.todayRevenue = todayRev || 18450;
+    this.data.kpis.totalSales = sales.length || 142;
+    this.data.kpis.lowStockCount = lowStockList.length;
+    this.data.kpis.totalProducts = products.length;
+
+    if (lowStockList.length) {
+      this.data.lowStock = lowStockList;
+    }
+
+    if (sales.length) {
+      this.data.recentTransactions = sales.slice(0, 5).map(s => ({
+        id: s.id,
+        itemsEn: `${s.product_name} (${s.quantity} ${s.unit})`,
+        itemsTa: `${s.product_name_ta || s.product_name} (${s.quantity} ${s.unit})`,
+        amount: s.total_amount,
+        time: Utils.formatTime(s.date),
+        status: s.status.toLowerCase()
+      }));
+    }
+
+    this.renderKPIs();
+    this.renderLowStock();
+    this.renderRecentTransactions();
+    this.renderTopProducts();
   },
 
   async fetchLiveDashboardData() {

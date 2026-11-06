@@ -4,18 +4,24 @@
  */
 
 import { Utils } from './utils.js';
+import { Store } from './store.js';
 import { Navigation } from './navigation.js';
 import { Dashboard } from './dashboard.js';
 import { VoiceAssistant } from './voice.js';
+import { Inventory } from './inventory.js';
+import { Sales } from './sales.js';
 
 export const App = {
   currentLang: 'en',
 
   init() {
+    Store.init();
     this.initLanguage();
     Navigation.init();
     Dashboard.init();
     VoiceAssistant.init();
+    Inventory.init();
+    Sales.init();
     this.bindGlobalEvents();
 
     // Check if initial hash is set (e.g. #voice)
