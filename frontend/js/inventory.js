@@ -714,3 +714,4 @@ export const Inventory = {
 if (typeof window !== 'undefined') {
   window.Inventory = Inventory;
 }
+

@@ -492,3 +492,4 @@ export const Store = {
     window.dispatchEvent(new CustomEvent('store-updated', { detail: { type } }));
   }
 };
+

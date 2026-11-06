@@ -642,3 +642,4 @@ export const Sales = {
 if (typeof window !== 'undefined') {
   window.Sales = Sales;
 }
+
