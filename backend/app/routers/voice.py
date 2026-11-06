@@ -1,21 +1,16 @@
-"""
-TamilVoice Kirana AI - Voice Processing Router
-Speech-to-Intent parsing engine with Tamil and Tanglish entity extraction.
-"""
-
+"""Voice Processing Router: Speech-to-Intent parsing engine with Tamil and Tanglish entity extraction."""
 import re
 from typing import Optional
-from fastapi import APIRouter, UploadFile, File, Form, Depends
-from backend.schemas import VoiceProcessResponse, VoiceProcessRequest
+from fastapi import APIRouter, UploadFile, File, Form
+from backend.app.schemas.voice import VoiceProcessResponse
 
 router = APIRouter(prefix="/voice", tags=["Voice Assistant Engine"])
 
 
 def parse_tamil_intent(text: str) -> dict:
-    """Extract action, product, quantity and units from Tamil/Tanglish retail text."""
+    """Extract action, product, quantity and units from Tamil/Tanglish retail speech."""
     lower = text.lower()
 
-    # Default fallback
     result = {
         "action": "Check Inventory",
         "action_ta": "இருப்பு சோதனை",
@@ -30,7 +25,6 @@ def parse_tamil_intent(text: str) -> dict:
         "response_en": "Your voice command has been parsed."
     }
 
-    # Extract Numbers / Quantities
     qty_match = re.search(r"(\d+(\.\d+)?)", lower)
     qty = float(qty_match.group(1)) if qty_match else None
 
@@ -112,9 +106,9 @@ def parse_tamil_intent(text: str) -> dict:
         result["action_ta"] = "குறைந்த இருப்பு பட்டியல்"
         result["requires_confirmation"] = False
         result["confidence"] = 0.98
-        result["response_ta"] = "கவனிக்கவும்! 6 பொருட்கள் குறைந்த இருப்பில் உள்ளன. எண்ணெய் மற்றும் உப்பு உடனே ஆர்டர் செய்ய வேண்டும்."
-        result["response_tanglish"] = "6 products low stock-la irukku. Oil and salt udane re-order pannanum."
-        result["response_en"] = "Attention: 6 items are low on stock, including sunflower oil and salt."
+        result["response_ta"] = "கவனிக்கவும்! பொருட்கள் குறைந்த இருப்பில் உள்ளன. எண்ணெய் மற்றும் உப்பு உடனே ஆர்டர் செய்ய வேண்டும்."
+        result["response_tanglish"] = "Products low stock-la irukku. Oil and salt udane re-order pannanum."
+        result["response_en"] = "Attention: Items are low on stock, including sunflower oil and salt."
 
     # Detect Daily Sales
     elif any(k in lower for k in ["sales evlo", "இன்றைய விற்பனை", "today sales"]):
@@ -122,9 +116,9 @@ def parse_tamil_intent(text: str) -> dict:
         result["action_ta"] = "இன்றைய விற்பனை தகவல்"
         result["requires_confirmation"] = False
         result["confidence"] = 0.99
-        result["response_ta"] = "இன்று இதுவரை ₹18,450 விற்பனை ஆகியுள்ளது. மொத்தம் 142 பில்கள் போடப்பட்டுள்ளன."
-        result["response_tanglish"] = "Innaiku idhuvaraikkum ₹18,450 sales aagi irukku. Total 142 bills."
-        result["response_en"] = "Today's sales total ₹18,450 across 142 completed bills."
+        result["response_ta"] = "இன்று இதுவரை விற்பனை சிறப்பாக நடைபெற்று வருகிறது."
+        result["response_tanglish"] = "Innaiku sales nalla poittu irukku."
+        result["response_en"] = "Today's retail sales are progressing well."
 
     return result
 
@@ -135,31 +129,24 @@ async def process_voice(
     transcript: Optional[str] = Form(None),
     language: str = Form("ta")
 ):
-    """
-    Process incoming audio stream or transcript from the merchant.
-    Integrates with Gnani Prisma and Gemini intent engine.
-    """
+    """Process incoming audio stream or transcript."""
     raw_transcript = transcript or "Innaiku 5 kilo rice stock add pannunga."
     if audio:
-        # In full production, send audio to Gnani Prisma v2.5 ASR
-        # Here we simulate high accuracy recognition of the captured stream
         content = await audio.read()
-        print(f"[FastAPI] Received audio payload: {len(content)} bytes")
 
     parsed = parse_tamil_intent(raw_transcript)
 
-    return {
-        "transcript": raw_transcript,
-        "action": parsed["action"],
-        "action_ta": parsed["action_ta"],
-        "product": parsed["product"],
-        "product_ta": parsed["product_ta"],
-        "quantity": parsed["quantity"],
-        "unit": parsed["unit"],
-        "confidence": parsed["confidence"],
-        "requires_confirmation": parsed["requires_confirmation"],
-        "response_ta": parsed["response_ta"],
-        "response_tanglish": parsed["response_tanglish"],
-        "response_en": parsed["response_en"]
-    }
-
+    return VoiceProcessResponse(
+        transcript=raw_transcript,
+        action=parsed["action"],
+        action_ta=parsed["action_ta"],
+        product=parsed["product"],
+        product_ta=parsed["product_ta"],
+        quantity=parsed["quantity"],
+        unit=parsed["unit"],
+        confidence=parsed["confidence"],
+        requires_confirmation=parsed["requires_confirmation"],
+        response_ta=parsed["response_ta"],
+        response_tanglish=parsed["response_tanglish"],
+        response_en=parsed["response_en"]
+    )

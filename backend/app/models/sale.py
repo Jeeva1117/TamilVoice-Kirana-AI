@@ -1,5 +1,5 @@
 """Sale Database Model."""
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, String, Float, DateTime, Text, ForeignKey
 from sqlalchemy.orm import relationship
 from backend.app.database import Base
@@ -15,7 +15,7 @@ class Sale(Base):
     payment_method = Column(String(30), nullable=False, default="CASH")  # CASH, UPI, CREDIT, CARD
     status = Column(String(30), nullable=False, default="COMPLETED")  # COMPLETED, CANCELLED, REFUNDED
     notes = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
 
     # Relationships
     customer = relationship("Customer", back_populates="sales")

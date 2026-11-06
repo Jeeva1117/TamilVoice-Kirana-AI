@@ -26,7 +26,7 @@ def adjust_stock(
         product = db.query(Product).filter(
             Product.id == product_id,
             Product.is_active == True
-        ).with_for_update().first()
+        ).first()
 
         if not product:
             raise HTTPException(
@@ -35,7 +35,7 @@ def adjust_stock(
             )
 
         prev_qty = product.quantity
-        adj_type_str = str(adjustment_type).upper()
+        adj_type_str = adjustment_type.value if hasattr(adjustment_type, "value") else str(adjustment_type).upper()
 
         if adj_type_str == StockAdjustmentType.ADD.value:
             if quantity == 0:

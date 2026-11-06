@@ -1,5 +1,5 @@
 """Database Seeder: Populates initial realistic Kirana products, customers, and test sales."""
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from sqlalchemy.orm import Session
 from backend.app.models.product import Product
 from backend.app.models.customer import Customer
@@ -200,7 +200,7 @@ def seed_database(db: Session):
         created_customers.append(cust)
 
     # 3. Seed Sample Completed Sales (for rich initial dashboard stats)
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     # Today sale 1
     p1 = created_products[0]  # Ponni rice
     p2 = created_products[2]  # Oil

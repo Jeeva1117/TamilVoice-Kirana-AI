@@ -1,5 +1,5 @@
 """Health Check Router."""
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -23,6 +23,6 @@ def check_health(db: Session = Depends(get_db)):
         "service": settings.PROJECT_NAME,
         "version": settings.VERSION,
         "database": db_status,
-        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "timezone": settings.TIMEZONE,
     }

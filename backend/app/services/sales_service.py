@@ -63,7 +63,7 @@ def create_sale(db: Session, sale_in: SaleCreate) -> Sale:
             product = db.query(Product).filter(
                 Product.id == item.product_id,
                 Product.is_active == True
-            ).with_for_update().first()
+            ).first()
 
             if not product:
                 raise HTTPException(

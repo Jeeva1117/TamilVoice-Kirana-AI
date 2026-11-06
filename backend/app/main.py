@@ -13,6 +13,7 @@ from backend.app.routers import (
     customers_router,
     dashboard_router,
     reports_router,
+    voice_router,
 )
 
 
@@ -59,6 +60,7 @@ app.include_router(sales_router, prefix=api_prefix)
 app.include_router(customers_router, prefix=api_prefix)
 app.include_router(dashboard_router, prefix=api_prefix)
 app.include_router(reports_router, prefix=api_prefix)
+app.include_router(voice_router, prefix=api_prefix)
 
 
 @app.get("/")

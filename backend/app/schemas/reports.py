@@ -36,7 +36,7 @@ class ProductPerformanceItem(BaseModel):
     current_stock: float
 
 
- class InventoryValuationResponse(BaseModel):
+class InventoryValuationResponse(BaseModel):
     total_items: int
     total_quantity: float
     total_cost_value: float

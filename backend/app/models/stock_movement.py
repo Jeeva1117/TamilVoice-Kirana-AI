@@ -1,5 +1,5 @@
 """Stock Movement Audit Log Model."""
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from backend.app.database import Base
@@ -16,6 +16,6 @@ class StockMovement(Base):
     new_quantity = Column(Float, nullable=False)
     reason = Column(String(255), nullable=True)
     reference_id = Column(String(100), nullable=True)  # e.g. transaction_id, order_id, manual note
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
 
     product = relationship("Product", back_populates="stock_movements")

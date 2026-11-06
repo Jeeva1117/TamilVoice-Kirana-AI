@@ -1,5 +1,5 @@
 """Customer Database Model."""
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, String, Float, DateTime, Text
 from sqlalchemy.orm import relationship
 from backend.app.database import Base
@@ -13,7 +13,7 @@ class Customer(Base):
     phone = Column(String(20), nullable=True, index=True)
     address = Column(Text, nullable=True)
     credit_balance = Column(Float, nullable=False, default=0.0)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
     sales = relationship("Sale", back_populates="customer")

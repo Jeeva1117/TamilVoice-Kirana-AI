@@ -1,16 +1,37 @@
 /**
  * TamilVoice Kirana AI - Centralized API Service Layer
- * Prepared for future FastAPI backend integration.
- * Gracefully falls back to client-side demo data when backend is not running.
+ * Connects to FastAPI backend on http://localhost:8000/api
+ * Gracefully falls back to client-side store when backend is unreachable.
  */
 
 export const API_CONFIG = {
   BASE_URL: 'http://localhost:8000/api',
-  TIMEOUT_MS: 5000,
-  IS_DEMO_MODE: true, // Auto-detected or forced when backend is unreachable
+  TIMEOUT_MS: 6000,
+  IS_BACKEND_AVAILABLE: false,
 };
 
 export class ApiService {
+  /**
+   * Test connection to FastAPI backend
+   */
+  static async checkHealth() {
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/health`, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+        signal: AbortSignal.timeout(3000),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        API_CONFIG.IS_BACKEND_AVAILABLE = data.status === 'healthy';
+        return data;
+      }
+    } catch {
+      API_CONFIG.IS_BACKEND_AVAILABLE = false;
+    }
+    return { status: 'offline', database: 'disconnected' };
+  }
+
   /**
    * Generic request wrapper with timeout and error handling
    * @param {string} endpoint
@@ -41,13 +62,13 @@ export class ApiService {
         throw new Error(errorData.detail || `HTTP Error ${response.status}: ${response.statusText}`);
       }
 
-      API_CONFIG.IS_DEMO_MODE = false;
+      API_CONFIG.IS_BACKEND_AVAILABLE = true;
       return await response.json();
     } catch (error) {
       clearTimeout(timeoutId);
-      // Mark as demo mode if backend is unreachable
-      API_CONFIG.IS_DEMO_MODE = true;
-      console.warn(`[API] Notice: Backend is not reachable at ${url} (${error.message}). Running in Demo Mode.`);
+      if (error.name === 'AbortError') {
+        throw new Error('API Request timed out.');
+      }
       throw error;
     }
   }
@@ -66,6 +87,14 @@ export class ApiService {
     const queryString = new URLSearchParams(params).toString();
     const endpoint = queryString ? `/inventory?${queryString}` : '/inventory';
     return this.request(endpoint, { method: 'GET' });
+  }
+
+  static async getCategories() {
+    return this.request('/inventory/categories', { method: 'GET' });
+  }
+
+  static async getProduct(id) {
+    return this.request(`/inventory/${id}`, { method: 'GET' });
   }
 
   static async createProduct(productData) {
@@ -89,12 +118,42 @@ export class ApiService {
   }
 
   /* =========================================================================
+     Stock Adjustment Endpoints
+     ========================================================================= */
+  static async adjustStock(productId, adjustmentData) {
+    return this.request(`/inventory/${productId}/adjust`, {
+      method: 'POST',
+      body: JSON.stringify(adjustmentData),
+    });
+  }
+
+  static async getStockMovements(productId, limit = 50) {
+    return this.request(`/inventory/${productId}/movements?limit=${limit}`, {
+      method: 'GET',
+    });
+  }
+
+  static async getAllStockMovements(limit = 50) {
+    return this.request(`/inventory/movements/all?limit=${limit}`, {
+      method: 'GET',
+    });
+  }
+
+  /* =========================================================================
      Sales & Orders Endpoints
      ========================================================================= */
   static async getSales(params = {}) {
     const queryString = new URLSearchParams(params).toString();
     const endpoint = queryString ? `/sales?${queryString}` : '/sales';
     return this.request(endpoint, { method: 'GET' });
+  }
+
+  static async getSale(id) {
+    return this.request(`/sales/${id}`, { method: 'GET' });
+  }
+
+  static async getSaleByTxId(txnId) {
+    return this.request(`/sales/transaction/${encodeURIComponent(txnId)}`, { method: 'GET' });
   }
 
   static async createSale(saleData) {
@@ -105,48 +164,37 @@ export class ApiService {
   }
 
   /* =========================================================================
-     Voice Processing Endpoint (Gnani & Gemini)
+     Customers Endpoints
      ========================================================================= */
-  static async processVoice(audioBlob, langCode = 'ta-IN') {
-    const formData = new FormData();
-    formData.append('audio', audioBlob, 'recording.webm');
-    formData.append('language', langCode);
+  static async getCustomers(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    const endpoint = queryString ? `/customers?${queryString}` : '/customers';
+    return this.request(endpoint, { method: 'GET' });
+  }
 
-    const url = `${API_CONFIG.BASE_URL}/voice/process`;
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 12000);
-
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        body: formData,
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        throw new Error(`Voice API error: ${response.status}`);
-      }
-      return await response.json();
-    } catch (error) {
-      clearTimeout(timeoutId);
-      throw error;
-    }
+  static async createCustomer(customerData) {
+    return this.request('/customers', {
+      method: 'POST',
+      body: JSON.stringify(customerData),
+    });
   }
 
   /* =========================================================================
      Reports & Analytics Endpoints
      ========================================================================= */
-  static async getDailyReport(date) {
-    return this.request(`/reports/daily?date=${encodeURIComponent(date)}`, { method: 'GET' });
+  static async getDailyReport(startDate, endDate) {
+    const params = new URLSearchParams();
+    if (startDate) params.set('start_date', startDate);
+    if (endDate) params.set('end_date', endDate);
+    const qs = params.toString();
+    return this.request(qs ? `/reports/daily?${qs}` : '/reports/daily', { method: 'GET' });
   }
 
-  static async getWeeklyReport(startDate) {
-    return this.request(`/reports/weekly?start_date=${encodeURIComponent(startDate)}`, { method: 'GET' });
+  static async getProductsReport() {
+    return this.request('/reports/products', { method: 'GET' });
   }
 
-  static async getMonthlyReport(year, month) {
-    return this.request(`/reports/monthly?year=${year}&month=${month}`, { method: 'GET' });
+  static async getInventoryValuationReport() {
+    return this.request('/reports/inventory', { method: 'GET' });
   }
 }
-
