@@ -96,19 +96,20 @@ flowchart TD
 
 - [x] **Phase 1: Project Initialization & Git Architecture Setup**
   - Workspace inspection, branch standardisation (`main`), repository remote linkage, `.gitignore`, and engineering structure.
-- [ ] **Phase 2: Frontend Dashboard Interface**
-  - Responsive, modern merchant dashboard using HTML5, CSS3, and Vanilla JavaScript.
-  - Interactive billing register, voice trigger interface, product lookup, and khata ledger cards.
-- [ ] **Phase 3: FastAPI Backend & Data Models**
-  - Asynchronous REST endpoints for products, billing, inventory, and customer ledger.
-  - Database schema and ORM layer.
-- [ ] **Phase 4: Tamil Speech & NLP Pipeline**
-  - Integration with Gnani.ai ASR and TTS APIs.
-  - Tamil entity extraction (product name, numerical count, standard units).
-- [ ] **Phase 5: Real-Time Business Logic & Analytics**
-  - Voice-driven end-to-end checkout, credit reconciliation, and daily sales analytics.
-- [ ] **Phase 6: Testing, Hardening & Deployment**
-  - Unit/integration testing, offline-first resiliency, and production deployment configuration.
+- [x] **Phase 2: Advanced Voice Assistant Frontend & Design System**
+  - Responsive, modern merchant dashboard using semantic HTML5, CSS3, and Vanilla JavaScript.
+  - Interactive billing register, voice trigger interface, waveform audio recording, and demo voice commands.
+- [x] **Phase 3: Advanced Inventory & Sales Management UI**
+  - Real-time inventory table with stock adjustment modal, SKU filtering, low-stock warnings, and retail sales checkout flow.
+- [x] **Phase 4: FastAPI Backend & SQLite Database Engine**
+  - Asynchronous REST API, SQLAlchemy 2.x declarative models, Alembic migrations, foreign key PRAGMA enforcement, and database seeder.
+- [x] **Phase 5: Google Gemini AI Tamil & Tanglish Intelligence Engine**
+  - Natural language intent extraction (`ADD_STOCK`, `SELL_PRODUCT`, `CHECK_STOCK`, `LOW_STOCK_QUERY`, `SALES_REPORT`), bilingual Tamil/Tanglish synonym resolution, and 2-step confirmation workflow.
+- [x] **Phase 6: Gnani Prisma v2.5 STT + Gnani Timbre v2.5 TTS Integration**
+  - Full end-to-end voice pipeline: Browser microphone recording → Gnani Prisma v2.5 speech-to-text → Gemini intent extraction → SQLite product lookup → Confirmation preview → User confirmation → SQLite commit → Gnani Timbre v2.5 speech synthesis → Browser audio playback.
+  - Deterministic Kirana mock transcription and pure-Python 16-bit PCM WAV synthesizer fallbacks.
+  - 16-state voice conversation state machine in frontend.
+  - 56 automated tests with 100% pass rate.
 
 ---
 
@@ -129,46 +130,83 @@ cd TamilVoice-Kirana-AI
 
 ### 2. Configure Environment
 
-Copy the example environment template:
+Copy the example environment template in `backend/`:
 
-```bash
+```powershell
+cd backend
 cp .env.example .env
 ```
 
-Update `.env` with your local settings and API keys.
+Configure `.env` with your settings:
 
-### 3. Backend Setup (Upcoming)
+```env
+# Application Settings
+PROJECT_NAME="TamilVoice Kirana AI"
+VERSION="1.0.0"
+API_PREFIX="/api"
+DATABASE_URL="sqlite:///./kirana_ai.db"
+TIMEZONE="Asia/Kolkata"
+DEBUG=true
 
-```bash
-# Create and activate virtual environment
-python -m venv venv
-# On Windows:
-venv\Scripts\activate
-# On Linux/macOS:
-source venv/bin/activate
+# Google Gemini AI (Official Google GenAI SDK)
+GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_MODEL=gemini-2.5-flash
+GEMINI_ENABLED=true
+GEMINI_TIMEOUT_SECONDS=15.0
 
-# Install dependencies (once requirements.txt is available)
-pip install -r backend/requirements.txt
-
-# Run FastAPI server
-uvicorn backend.main:app --reload --port 8000
+# Gnani.ai Indic Voice Platform (Prisma STT & Timbre TTS)
+GNANI_API_KEY=your_gnani_api_key_here
+GNANI_STT_MODEL=prisma-v2.5
+GNANI_TTS_MODEL=timbre-v2.5
+GNANI_STT_ENABLED=true
+GNANI_TTS_ENABLED=true
+GNANI_API_BASE_URL=https://api.vachana.ai
+GNANI_STT_TIMEOUT=30.0
+GNANI_TTS_TIMEOUT=30.0
+MAX_AUDIO_SIZE_BYTES=10485760
 ```
+
+> **Demo / Mock Note:** When `GNANI_API_KEY` or `GEMINI_API_KEY` are not provided, the application gracefully operates in mock/demo mode with synthetic Tamil speech and realistic Kirana command samples.
+
+### 3. Backend Setup & Server Launch (Windows PowerShell)
+
+```powershell
+# From the project root
+python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
+```
+
+Interactive API documentation:
+- **Swagger UI:** `http://127.0.0.1:8000/docs`
+- **ReDoc:** `http://127.0.0.1:8000/redoc`
 
 ### 4. Frontend Launch
 
-Open `frontend/index.html` in your web browser or serve it using any local static file server (e.g., Live Server or Python HTTP server):
+In a second terminal window, serve the frontend:
 
-```bash
+```powershell
+# From the project root
 python -m http.server 3000 --directory frontend
+```
+
+Open in browser:
+- `http://localhost:3000`
+
+### 5. Running Automated Tests
+
+Run the full Pytest test suite covering all Phases 1–6 (56 tests):
+
+```powershell
+python -m pytest backend/tests -v
 ```
 
 ---
 
 ## 📊 Current Project Status
 
-- **Status**: **Phase 1 Complete — Repository Setup & Project Initialization**
+- **Status**: **Phase 6 Complete — Gnani Prisma v2.5 STT & Timbre v2.5 TTS Full Integration**
 - **Active Branch**: `main`
-- **Next Milestone**: Phase 2 — Implementation of the responsive merchant dashboard UI in HTML, CSS, and Vanilla JavaScript.
+- **Automated Tests**: 56 passing (100% pass rate)
+- **Voice Pipeline**: End-to-end live Tamil/Tanglish speech-to-text, Gemini intent extraction, safe confirmation workflow, and synthesized Tamil voice playback.
 
 ---
 
