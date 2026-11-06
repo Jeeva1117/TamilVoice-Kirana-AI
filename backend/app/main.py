@@ -1,7 +1,9 @@
 """TamilVoice Kirana AI - FastAPI Application Entry Point."""
+import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from backend.app.config import settings
 from backend.app.database import engine, Base, SessionLocal
 from backend.app.database_seeder import seed_database
@@ -69,7 +71,7 @@ app.include_router(settings_router, prefix=api_prefix)
 app.include_router(system_test_router, prefix=api_prefix)
 
 
-@app.get("/")
+@app.get("/api")
 def root():
     """Root info endpoint."""
     return {
@@ -79,3 +81,10 @@ def root():
         "docs": "/docs",
         "health": f"{settings.API_PREFIX}/health",
     }
+
+
+# Mount frontend static files to serve the complete application seamlessly
+frontend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "frontend"))
+if os.path.exists(frontend_dir):
+    app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")
+

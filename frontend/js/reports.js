@@ -132,3 +132,4 @@ export const Reports = {
     Utils.showToast('success', 'Report Export', `Generating ${type} CSV spreadsheet download...`);
   }
 };
+
