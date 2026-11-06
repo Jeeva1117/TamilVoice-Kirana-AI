@@ -1,0 +1,336 @@
+/**
+ * TamilVoice Kirana AI - Sales & Orders Styles
+ * Phase 3: Sales Register, New Sale Modal, Confirmation, Printable Receipt & Print CSS
+ */
+
+.sales-page-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+/* Header & Controls */
+.sales-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.sales-main-title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2-5);
+}
+
+.sales-main-subtitle {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+/* 4 Sales KPI Cards Grid */
+.sales-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+}
+
+.sales-kpi-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-4) var(--space-5);
+  box-shadow: var(--shadow-card);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.sales-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+/* Toolbar & Filters */
+.sales-toolbar {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-4) var(--space-5);
+  box-shadow: var(--shadow-card);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+/* Payment Method Badges */
+.payment-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.payment-badge.cash {
+  background-color: #ECFDF5;
+  color: #047857;
+  border: 1px solid #A7F3D0;
+}
+
+.payment-badge.upi {
+  background-color: #EFF6FF;
+  color: #1D4ED8;
+  border: 1px solid #BFDBFE;
+}
+
+.payment-badge.card {
+  background-color: #F5F3FF;
+  color: #6D28D9;
+  border: 1px solid #DDD6FE;
+}
+
+.payment-badge.credit {
+  background-color: #FEF3C7;
+  color: #B45309;
+  border: 1px solid #FDE68A;
+}
+
+/* New Sale Stock Indicator */
+.product-stock-hint {
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-secondary);
+  margin-top: 4px;
+}
+
+.product-stock-hint.sufficient {
+  color: var(--color-success);
+}
+
+.product-stock-hint.insufficient {
+  color: var(--color-danger);
+  font-weight: var(--font-weight-bold);
+}
+
+/* Total Price Live Display Box in Modal */
+.total-calc-box {
+  background-color: #F8FAFC;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  text-align: right;
+  margin-top: var(--space-3);
+}
+
+.total-calc-label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+}
+
+.total-calc-amount {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+}
+
+/* Sale Confirmation Card */
+.sale-confirmation-summary {
+  background: linear-gradient(135deg, #FEF3C7 0%, #FFFBEB 100%);
+  border: 1px solid #F59E0B;
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.stock-delta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) 0;
+  border-bottom: 1px dashed #FDE68A;
+  font-size: var(--font-size-xs);
+}
+
+.stock-delta-row:last-child {
+  border-bottom: none;
+}
+
+/* ==========================================================================
+   Receipt Styling & Printable Template
+   ========================================================================== */
+.receipt-wrapper {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  max-width: 420px;
+  margin: 0 auto;
+  box-shadow: var(--shadow-md);
+  font-family: var(--font-family-sans);
+  color: #0F172A;
+}
+
+.receipt-header {
+  text-align: center;
+  border-bottom: 2px dashed #CBD5E1;
+  padding-bottom: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.receipt-shop-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: #0F172A;
+}
+
+.receipt-shop-tamil {
+  font-family: var(--font-family-tamil);
+  font-size: var(--font-size-sm);
+  color: #64748B;
+}
+
+.receipt-shop-meta {
+  font-size: var(--font-size-2xs);
+  color: #64748B;
+  margin-top: 4px;
+}
+
+.receipt-demo-watermark {
+  display: inline-block;
+  margin-top: 4px;
+  background-color: #FEF3C7;
+  color: #92400E;
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-bold);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.receipt-info-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--font-size-xs);
+  color: #475569;
+  margin-bottom: 4px;
+}
+
+.receipt-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-xs);
+  margin: var(--space-4) 0;
+}
+
+.receipt-items-table th {
+  border-bottom: 1px solid #CBD5E1;
+  padding: 6px 0;
+  text-align: left;
+  color: #64748B;
+  font-weight: var(--font-weight-semibold);
+}
+
+.receipt-items-table td {
+  padding: 8px 0;
+  border-bottom: 1px dashed #E2E8F0;
+}
+
+.receipt-total-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+  color: #0F172A;
+  padding-top: var(--space-3);
+  border-top: 2px dashed #CBD5E1;
+  margin-top: var(--space-2);
+}
+
+.receipt-footer {
+  text-align: center;
+  margin-top: var(--space-5);
+  padding-top: var(--space-3);
+  border-top: 1px dashed #CBD5E1;
+  font-size: var(--font-size-xs);
+  color: #64748B;
+}
+
+.receipt-thankyou-tamil {
+  font-family: var(--font-family-tamil);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-sm);
+  color: #0F172A;
+  margin-top: 4px;
+}
+
+/* ==========================================================================
+   Print Specific Stylesheet (@media print)
+   Only prints the receipt card, hides all application chrome!
+   ========================================================================== */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .app-sidebar,
+  .topbar,
+  .sidebar-overlay,
+  .mobile-bottom-nav,
+  .toast-container,
+  .modal-header,
+  .modal-footer,
+  .btn,
+  .inventory-toolbar,
+  .sales-toolbar,
+  .kpi-grid,
+  .sales-kpi-grid {
+    display: none !important;
+  }
+
+  #printable-receipt-area,
+  #printable-receipt-area * {
+    visibility: visible;
+  }
+
+  #printable-receipt-area {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 20px;
+    background: #FFFFFF;
+    box-shadow: none;
+    border: none;
+  }
+
+  .receipt-wrapper {
+    box-shadow: none;
+    border: 1px solid #000000;
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+  .sales-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .sales-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -58,3 +58,4 @@ def get_monthly_report(year: Optional[int] = 2026, month: Optional[int] = 11, db
         "total_orders": 3260,
         "estimated_gross_profit": 57500.0
     }
+

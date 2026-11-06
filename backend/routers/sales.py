@@ -51,3 +51,4 @@ def record_sale(sale_in: SaleCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(sale)
     return sale
+

@@ -57,3 +57,4 @@ class Customer(Base):
     phone = Column(String(20), nullable=True)
     credit_balance = Column(Float, nullable=False, default=0.0)  # Udhaar Khata
     created_at = Column(DateTime, default=datetime.utcnow)
+

@@ -115,3 +115,4 @@ def get_dashboard_data(db: Session = Depends(get_db)):
         "recentTransactions": recent_transactions,
         "topProducts": top_products
     }
+
