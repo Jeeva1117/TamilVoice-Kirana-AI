@@ -70,7 +70,7 @@ def test_intent_schema_missing_quantity_requires_clarification():
     }
     intent = CommandIntent(**raw)
     assert intent.requires_clarification is True
-    assert "How much rice" in intent.clarification_question
+    assert "rice" in intent.clarification_question.lower() or "அரிசி" in intent.clarification_question
 
 
 def test_intent_schema_missing_product_requires_clarification():
@@ -345,7 +345,7 @@ async def test_interpret_read_only_stock_query(client, sample_product):
             assert data["success"] is True
             assert data["requires_confirmation"] is False
             assert data["confirmation_preview"] is None
-            assert f"{sample_product.quantity}" in data["message"]
+            assert f"{int(sample_product.quantity)}" in data["message"] or f"{sample_product.quantity}" in data["message"]
 
 
 def test_interpret_unconfigured_gemini_raises_503(client):

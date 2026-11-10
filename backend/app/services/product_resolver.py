@@ -23,21 +23,53 @@ SYNONYM_KEYWORDS = {
     "புழுங்கல்": ["rice", "ponni", "அரிசி"],
     "சாப்பாடு அரிசி": ["rice", "ponni", "அரிசி"],
 
-    # Oil
-    "oil": ["oil", "sunflower", "எண்ணெய்"],
-    "sunflower": ["oil", "sunflower", "எண்ணெய்"],
-    "ennai": ["oil", "sunflower", "எண்ணெய்"],
-    "enna": ["oil", "sunflower", "எண்ணெய்"],
-    "எண்ணெய்": ["oil", "sunflower", "எண்ணெய்"],
-    "சூரியகாந்தி": ["oil", "sunflower", "எண்ணெய்"],
+    # Oil & Gold Winner
+    "oil": ["gold winner", "sunflower", "எண்ணெய்"],
+    "sunflower": ["sunflower", "gold winner", "எண்ணெய்"],
+    "gold winner": ["gold winner", "goldwinner"],
+    "gold winner oil": ["gold winner", "goldwinner"],
+    "goldwinner": ["gold winner", "goldwinner"],
+    "ennai": ["gold winner", "sunflower", "எண்ணெய்"],
+    "enna": ["gold winner", "sunflower", "எண்ணெய்"],
+    "எண்ணெய்": ["gold winner", "sunflower", "எண்ணெய்"],
+    "சூரியகாந்தி": ["gold winner", "sunflower", "எண்ணெய்"],
 
     # Atta / Wheat Flour
-    "atta": ["atta", "wheat", "godhumai", "கோதுமை"],
-    "wheat": ["atta", "wheat", "godhumai", "கோதுமை"],
-    "godhumai": ["atta", "wheat", "godhumai", "கோதுமை"],
-    "kothumai": ["atta", "wheat", "godhumai", "கோதுமை"],
-    "கோதுமை": ["atta", "wheat", "godhumai", "கோதுமை"],
-    "மாவு": ["atta", "wheat", "godhumai", "கோதுமை"],
+    "atta": ["atta", "wheat", "godhumai", "கோதுமை", "flour"],
+    "wheat": ["atta", "wheat", "godhumai", "கோதுமை", "flour"],
+    "wheat flour": ["atta", "wheat", "godhumai", "கோதுமை", "flour"],
+    "godhumai": ["atta", "wheat", "godhumai", "கோதுமை", "flour"],
+    "godhumai maavu": ["atta", "wheat", "godhumai", "கோதுமை", "flour"],
+    "gothumai": ["atta", "wheat", "godhumai", "கோதுமை", "flour"],
+    "gothumai maavu": ["atta", "wheat", "godhumai", "கோதுமை", "flour"],
+    "கோதுமை": ["atta", "wheat", "godhumai", "கோதுமை", "flour"],
+    "கோதுமை மாவு": ["atta", "wheat", "godhumai", "கோதுமை", "flour"],
+    "மாவு": ["atta", "wheat", "godhumai", "கோதுமை", "flour"],
+
+    # Vegetables: Tomato & Onion
+    "tomato": ["tomato", "thakkali", "தக்காளி"],
+    "tomatoes": ["tomato", "thakkali", "தக்காளி"],
+    "thakkali": ["tomato", "thakkali", "தக்காளி"],
+    "தக்காளி": ["tomato", "thakkali", "தக்காளி"],
+
+    "onion": ["onion", "vengayam", "வெங்காயம்"],
+    "onions": ["onion", "vengayam", "வெங்காயம்"],
+    "vengayam": ["onion", "vengayam", "வெங்காயம்"],
+    "வெங்காயம்": ["onion", "vengayam", "வெங்காயம்"],
+
+    # Tea Powder
+    "tea": ["tea", "tea powder", "டீ", "டீ தூள்", "தேயிலை"],
+    "tea powder": ["tea", "tea powder", "டீ", "டீ தூள்", "தேயிலை"],
+    "டீ": ["tea", "tea powder", "டீ", "டீ தூள்", "தேயிலை"],
+    "டீ தூள்": ["tea", "tea powder", "டீ", "டீ தூள்", "தேயிலை"],
+    "தேயிலை": ["tea", "tea powder", "டீ", "டீ தூள்", "தேயிலை"],
+    "தேயிலை தூள்": ["tea", "tea powder", "டீ", "டீ தூள்", "தேயிலை"],
+
+    # Masala
+    "masala": ["masala", "மசாலா", "garam masala", "masala powder"],
+    "masala powder": ["masala", "மசாலா", "garam masala", "masala powder"],
+    "மசாலா": ["masala", "மசாலா", "garam masala", "masala powder"],
+    "மசாலா தூள்": ["masala", "மசாலா", "garam masala", "masala powder"],
 
     # Salt
     "salt": ["salt", "uppu", "உப்பு"],
@@ -56,6 +88,13 @@ SYNONYM_KEYWORDS = {
     "milk": ["milk", "aavin", "பால்"],
     "paal": ["milk", "aavin", "பால்"],
     "பால்": ["milk", "aavin", "பால்"],
+
+    # Honey
+    "honey": ["honey", "pure honey", "தேன்"],
+    "pure honey": ["honey", "pure honey", "தேன்"],
+    "thean": ["honey", "pure honey", "தேன்"],
+    "then": ["honey", "pure honey", "தேன்"],
+    "தேன்": ["honey", "pure honey", "தேன்"],
     "aavin": ["milk", "aavin", "பால்"],
     "ஆவின்": ["milk", "aavin", "பால்"],
 
@@ -79,6 +118,68 @@ SYNONYM_KEYWORDS = {
     "bru": ["coffee", "bru", "காபி"],
     "காபி": ["coffee", "bru", "காபி"],
     "ப்ரூ": ["coffee", "bru", "காபி"],
+    "coffee powder": ["coffee", "bru", "காபி"],
+    "காபி தூள்": ["coffee", "bru", "காபி"],
+
+    # Garlic
+    "garlic": ["garlic", "பூண்டு"],
+    "poondu": ["garlic", "பூண்டு"],
+    "பூண்டு": ["garlic", "பூண்டு"],
+
+    # Salt
+    "salt": ["salt", "tata salt", "உப்பு"],
+    "uppu": ["salt", "tata salt", "உப்பு"],
+    "உப்பு": ["salt", "tata salt", "உப்பு"],
+
+    # Bread & Bakery
+    "bread": ["bread", "milk bread", "பிரெட்"],
+    "பிரெட்": ["bread", "milk bread", "பிரெட்"],
+
+    # Biscuits
+    "biscuit": ["biscuit", "biscuits", "marie", "marie gold", "பிஸ்கட்"],
+    "biscuits": ["biscuit", "biscuits", "marie", "marie gold", "பிஸ்கட்"],
+    "marie gold": ["biscuit", "biscuits", "marie", "marie gold", "பிஸ்கட்"],
+    "பிஸ்கட்": ["biscuit", "biscuits", "marie", "marie gold", "பிஸ்கட்"],
+
+    # Chocolates & Snacks
+    "chocolate": ["chocolate", "chocolates", "dairy milk", "சாக்லேட்"],
+    "chocolates": ["chocolate", "chocolates", "dairy milk", "சாக்லேட்"],
+    "dairy milk": ["chocolate", "chocolates", "dairy milk", "சாக்லேட்"],
+    "சாக்லேட்": ["chocolate", "chocolates", "dairy milk", "சாக்லேட்"],
+    "chips": ["chips", "snacks", "சிப்ஸ்", "ஸ்நாக்ஸ்"],
+    "snacks": ["chips", "snacks", "சிப்ஸ்", "ஸ்நாக்ஸ்"],
+    "ஸ்நாக்ஸ்": ["chips", "snacks", "சிப்ஸ்", "ஸ்நாக்ஸ்"],
+
+    # Personal Care: Shampoo, Serum, Toothpaste, Hair Oil
+    "shampoo": ["shampoo", "clinic plus", "ஷாம்பு"],
+    "ஷாம்பு": ["shampoo", "clinic plus", "ஷாம்பு"],
+    "serum": ["serum", "hair serum", "சீரம்"],
+    "hair serum": ["serum", "hair serum", "சீரம்"],
+    "சீரம்": ["serum", "hair serum", "சீரம்"],
+    "toothpaste": ["toothpaste", "colgate", "டூத்பேஸ்ட்", "பற்பசை"],
+    "colgate": ["toothpaste", "colgate", "டூத்பேஸ்ட்"],
+    "டூத்பேஸ்ட்": ["toothpaste", "colgate", "டூத்பேஸ்ட்"],
+    "hair oil": ["hair oil", "coconut hair oil", "தலைமுடி எண்ணெய்"],
+    "தலைமுடி எண்ணெய்": ["hair oil", "coconut hair oil", "தலைமுடி எண்ணெய்"],
+
+    # Stationery: Notebook, Pen, Scale, Pencil, Eraser, Paper
+    "notebook": ["notebook", "classmate", "நோட்டு", "நோட்டுப் புத்தகம்"],
+    "note": ["notebook", "classmate", "நோட்டு", "நோட்டுப் புத்தகம்"],
+    "நோட்டு": ["notebook", "classmate", "நோட்டு", "நோட்டுப் புத்தகம்"],
+    "நோட்டுப் புத்தகம்": ["notebook", "classmate", "நோட்டு", "நோட்டுப் புத்தகம்"],
+    "pen": ["pen", "reynolds", "பேனா"],
+    "paena": ["pen", "reynolds", "பேனா"],
+    "பேனா": ["pen", "reynolds", "பேனா"],
+    "scale": ["scale", "ruler", "ஸ்கேல்", "அளவுகோல்"],
+    "ஸ்கேல்": ["scale", "ruler", "ஸ்கேல்", "அளவுகோல்"],
+    "அளவுகோல்": ["scale", "ruler", "ஸ்கேல்", "அளவுகோல்"],
+    "pencil": ["pencil", "apsara", "பென்சில்"],
+    "பென்சில்": ["pencil", "apsara", "பென்சில்"],
+    "eraser": ["eraser", "rubber", "அழிப்பான்", "ரப்பர்"],
+    "rubber": ["eraser", "rubber", "அழிப்பான்", "ரப்பர்"],
+    "அழிப்பான்": ["eraser", "rubber", "அழிப்பான்", "ரப்பர்"],
+    "paper": ["paper", "copier", "பேப்பர்"],
+    "பேப்பர்": ["paper", "copier", "பேப்பர்"],
 
     # Eggs
     "egg": ["egg", "muttai", "முட்டை"],
@@ -135,7 +236,37 @@ def resolve_product(
     if not query_text or not query_text.strip():
         return ResolutionStatus.NO_MATCH, None, []
 
-    cleaned = query_text.strip().lower()
+    import re
+    raw_cleaned = query_text.strip().lower()
+
+    # Step 0: Check exact match on raw query text first (e.g. "Masala Powder", "Ponni Boiled Rice")
+    raw_exact = db.query(Product).filter(
+        Product.is_active == True,
+        or_(
+            Product.sku.ilike(raw_cleaned),
+            Product.name.ilike(raw_cleaned),
+            Product.name_ta.ilike(raw_cleaned),
+        )
+    ).all()
+    if len(raw_exact) == 1:
+        return ResolutionStatus.MATCH, to_resolved_schema(raw_exact[0]), []
+    elif len(raw_exact) > 1:
+        return ResolutionStatus.MULTIPLE_MATCHES, None, [to_resolved_schema(p) for p in raw_exact]
+
+    # Normalize hyphens and attached Tanglish suffixes (-la, -le, -kku, -ku, -oda, -a)
+    cleaned = re.sub(r"-(?:la|le|kku|ku|oda|a)\b", "", raw_cleaned, flags=re.I)
+    # Only strip attached suffixes from known root patterns (rice-la -> ricela, oil-la -> oilla, stock-la -> stockla)
+    cleaned = re.sub(r"\b(rice|oil|stock|dal|arisi|ennai|atta|wheat|sugar|seeni|milk|paal|tea)(?:la|le|kku|ku|oda)\b", r"\1", cleaned, flags=re.I)
+    # Strip common command, direction, and unit filler words
+    for w in [
+        "stock", "add", "pannunga", "pannu", "sale", "sell", "kuduthuten", "kilo",
+        "litres", "litre", "packet", "bottle", "vandhirukku", "increase", "decrease",
+        "remove", "kammi", "korainga", "eduthukonga", "adhula", "innum"
+    ]:
+        cleaned = re.sub(r"\b" + re.escape(w) + r"\b", " ", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    if not cleaned:
+        cleaned = raw_cleaned
 
     # 1. Check generic ambiguous terms (e.g. "dal" / "paruppu" which has multiple variants)
     if cleaned in GENERIC_MULTI_TERMS:
@@ -159,6 +290,8 @@ def resolve_product(
             clauses.append(Product.name_ta.ilike(f"%{kw}%"))
             clauses.append(Product.sku.ilike(f"%{kw}%"))
         matched = db.query(Product).filter(Product.is_active == True, or_(*clauses)).all()
+        if cleaned in ("pen", "பேனா"):
+            matched = [p for p in matched if "pencil" not in p.name.lower()]
         if len(matched) == 1:
             return ResolutionStatus.MATCH, to_resolved_schema(matched[0]), []
         elif len(matched) > 1:
@@ -180,15 +313,27 @@ def resolve_product(
         return ResolutionStatus.MULTIPLE_MATCHES, None, [to_resolved_schema(p) for p in exact_matches]
 
     # 4. Partial substring matching on name and Tamil name
-    term = f"%{cleaned}%"
-    substring_matches = db.query(Product).filter(
-        Product.is_active == True,
-        or_(
-            Product.name.ilike(term),
-            Product.name_ta.ilike(term),
-            Product.category.ilike(term),
-        )
-    ).all()
+    if cleaned == "oil":
+        substring_matches = db.query(Product).filter(
+            Product.is_active == True,
+            or_(
+                Product.category.ilike("oil"),
+                Product.name.ilike("% oil%"),
+                Product.name.ilike("oil %"),
+                Product.name.ilike("oil"),
+                Product.name_ta.ilike("%எண்ணெய்%"),
+            )
+        ).all()
+    else:
+        term = f"%{cleaned}%"
+        substring_matches = db.query(Product).filter(
+            Product.is_active == True,
+            or_(
+                Product.name.ilike(term),
+                Product.name_ta.ilike(term),
+                Product.category.ilike(term),
+            )
+        ).all()
 
     if len(substring_matches) == 1:
         return ResolutionStatus.MATCH, to_resolved_schema(substring_matches[0]), []

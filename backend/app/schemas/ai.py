@@ -14,6 +14,12 @@ class IntentCategory(str, Enum):
     PRODUCT_SALES_REPORT = "PRODUCT_SALES_REPORT"
     INVENTORY_REPORT = "INVENTORY_REPORT"
     CREATE_PRODUCT = "CREATE_PRODUCT"
+    UPDATE_PRICE = "UPDATE_PRICE"
+    CONFIRM_ACTION = "CONFIRM_ACTION"
+    CANCEL_ACTION = "CANCEL_ACTION"
+    GREETING = "GREETING"
+    THANK_YOU = "THANK_YOU"
+    GENERAL_QUERY = "GENERAL_QUERY"
     UNKNOWN = "UNKNOWN"
 
 
@@ -42,13 +48,28 @@ def normalize_unit_str(unit_str: Optional[str]) -> Optional[str]:
     return u
 
 
+class OrderItemEntity(BaseModel):
+    product_name: str = Field(..., description="Extracted product name")
+    quantity: float = Field(..., description="Quantity to purchase or sell")
+    unit: Optional[str] = Field("kg", description="Measurement unit")
+    unit_price: Optional[float] = Field(None, description="Unit price if known")
+    line_total: Optional[float] = Field(None, description="Calculated line total")
+
+    @field_validator("unit")
+    @classmethod
+    def validate_and_normalize_unit(cls, v):
+        return normalize_unit_str(v)
+
+
 class CommandEntities(BaseModel):
     product_name: Optional[str] = Field(None, description="Extracted product name or synonym")
     quantity: Optional[float] = Field(None, description="Positive numeric quantity")
     unit: Optional[str] = Field(None, description="Standardized measurement unit")
+    price: Optional[float] = Field(None, description="Price in rupees per unit")
     date: Optional[str] = Field(None, description="Time reference like today, yesterday, this_week")
     customer_name: Optional[str] = Field(None, description="Optional customer name if mentioned")
     payment_method: Optional[str] = Field(None, description="CASH, UPI, CREDIT, CARD")
+    items: Optional[List[OrderItemEntity]] = Field(None, description="List of items for multi-item orders")
 
     @field_validator("quantity")
     @classmethod
@@ -75,31 +96,56 @@ class CommandIntent(BaseModel):
 
     @model_validator(mode="after")
     def validate_business_constraints(self):
-        # 1. Unknown intent always requires clarification
+        is_tamil = self.language in ("Tamil", "Tanglish", "Mixed") or any(
+            ord(c) >= 0x0B80 and ord(c) <= 0x0BFF for c in (self.original_text or "")
+        )
+
+        # 0. Conversational politeness and greetings never require product clarification
+        if self.intent in (IntentCategory.GREETING, IntentCategory.THANK_YOU, IntentCategory.GENERAL_QUERY):
+            self.requires_clarification = False
+            self.clarification_question = None
+            return self
+
+        # 1. Unknown intent always requires clarification in merchant's language
         if self.intent == IntentCategory.UNKNOWN:
             self.requires_clarification = True
             if not self.clarification_question:
-                self.clarification_question = (
-                    "I could not understand that command. Please specify if you want to "
-                    "add stock, record a sale, or check inventory."
-                )
+                if is_tamil:
+                    self.clarification_question = "மன்னிக்கவும், எந்தப் பொருளைப் பற்றி சொல்கிறீர்கள்?"
+                else:
+                    self.clarification_question = "Sorry, which product are you referring to?"
 
-        # 2. ADD_STOCK & SELL_PRODUCT require product_name and quantity
+        # 2. ADD_STOCK & SELL_PRODUCT require product_name and quantity (or items list)
         if self.intent in (IntentCategory.ADD_STOCK, IntentCategory.SELL_PRODUCT):
-            if not self.entities.product_name or not self.entities.product_name.strip():
-                self.requires_clarification = True
-                if not self.clarification_question:
-                    self.clarification_question = "Which product would you like to update?"
+            has_items = bool(self.entities.items and len(self.entities.items) > 0)
+            if not has_items:
+                if not self.entities.product_name or not self.entities.product_name.strip():
+                    self.requires_clarification = True
+                    if not self.clarification_question:
+                        if is_tamil:
+                            self.clarification_question = "எந்தப் பொருளைப் பற்றி சொல்கிறீர்கள்?"
+                        else:
+                            self.clarification_question = "Which product would you like to update?"
 
-            elif self.entities.quantity is None or self.entities.quantity <= 0:
-                self.requires_clarification = True
-                if not self.clarification_question:
-                    action_word = "add" if self.intent == IntentCategory.ADD_STOCK else "sell"
-                    self.clarification_question = f"How much {self.entities.product_name} would you like to {action_word}?"
+                elif self.entities.quantity is None or self.entities.quantity <= 0:
+                    self.requires_clarification = True
+                    if not self.clarification_question:
+                        prod_name = self.entities.product_name
+                        if is_tamil:
+                            if self.intent == IntentCategory.ADD_STOCK:
+                                self.clarification_question = f"எவ்வளவு {prod_name} சேர்க்க வேண்டும்?"
+                            else:
+                                self.clarification_question = f"{prod_name} எவ்வளவு வேண்டும்?"
+                        else:
+                            action_word = "add" if self.intent == IntentCategory.ADD_STOCK else "sell"
+                            self.clarification_question = f"How much {prod_name} would you like to {action_word}?"
 
         # 3. If requires_clarification is True, ensure a question exists
         if self.requires_clarification and not self.clarification_question:
-            self.clarification_question = "Could you please provide more details for this request?"
+            if is_tamil:
+                self.clarification_question = "மன்னிக்கவும், எந்தப் பொருளைப் பற்றி சொல்கிறீர்கள்?"
+            else:
+                self.clarification_question = "Could you please provide more details for this request?"
 
         return self
 
@@ -140,6 +186,8 @@ class ConfirmationPreview(BaseModel):
 class InterpretRequest(BaseModel):
     text: str = Field(..., min_length=1, max_length=500, description="Spoken or typed command")
     allow_mock: bool = Field(False, description="Allow mock intent extraction when Gemini is unconfigured")
+    session_id: Optional[str] = Field(None, description="Optional conversation session ID")
+    context: Optional[Dict[str, Any]] = Field(None, description="Optional conversational context from previous turns")
 
 
 class InterpretResponse(BaseModel):
@@ -152,6 +200,11 @@ class InterpretResponse(BaseModel):
     query_result: Optional[Dict[str, Any]] = None
     message: str
     message_ta: Optional[str] = None
+    message_tanglish: Optional[str] = None
+    detected_language: Optional[str] = "Tamil"
+    spoken_response: Optional[str] = None
+    session_id: Optional[str] = None
+    context: Optional[Dict[str, Any]] = None
 
 
 class ConfirmActionRequest(BaseModel):
@@ -168,6 +221,9 @@ class ConfirmActionResponse(BaseModel):
     total_amount: Optional[float] = None
     message: str
     message_ta: Optional[str] = None
+    message_tanglish: Optional[str] = None
+    detected_language: Optional[str] = "Tamil"
+    spoken_response: Optional[str] = None
 
 
 class CancelActionRequest(BaseModel):
@@ -177,6 +233,7 @@ class CancelActionRequest(BaseModel):
 class CancelActionResponse(BaseModel):
     success: bool
     message: str
+    message_ta: Optional[str] = None
 
 
 class AIStatusResponse(BaseModel):

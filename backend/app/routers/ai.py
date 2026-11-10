@@ -45,7 +45,13 @@ async def interpret_command(
     Validates intent with Pydantic, resolves catalog products, and creates
     a safe confirmation preview without modifying the database.
     """
-    return await interpret_user_command(db=db, text=request.text, allow_mock=request.allow_mock)
+    return await interpret_user_command(
+        db=db,
+        text=request.text,
+        allow_mock=request.allow_mock,
+        session_id=request.session_id,
+        context=request.context
+    )
 
 
 @router.post("/confirm", response_model=ConfirmActionResponse, status_code=status.HTTP_200_OK)
