@@ -14,18 +14,49 @@
 
 function getInitialBaseUrl() {
   if (typeof window === 'undefined') return '/api';
+
+  // 1. Explicit user override in Settings takes highest priority
   const savedUrl = localStorage.getItem('tamilvoice_backend_url') || localStorage.getItem('API_BASE_URL');
-  if (savedUrl && savedUrl.trim()) return savedUrl.trim();
-  if (window.__API_BASE_URL__ && window.__API_BASE_URL__.trim()) return window.__API_BASE_URL__.trim();
-  const metaUrl = document.querySelector('meta[name="backend-api-url"]')?.content;
-  if (metaUrl && metaUrl.trim()) return metaUrl.trim();
-  if (window.location.port === '8000') {
-    return `${window.location.origin}/api`;
+  if (savedUrl && savedUrl.trim()) {
+    let clean = savedUrl.trim().replace(/\/+$/, '');
+    if (!clean.endsWith('/api') && !clean.includes('/api/')) clean = `${clean}/api`;
+    return clean;
   }
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+
+  // 2. Local development on localhost/127.0.0.1 defaults to local FastAPI on port 8000
+  const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  if (isLocalHost) {
+    if (window.location.port === '8000') {
+      return `${window.location.origin}/api`;
+    }
     return `${window.location.protocol}//127.0.0.1:8000/api`;
   }
+
+  // 3. Injected build-time or runtime environment URL (e.g. Vercel build via build.js / env.js)
+  if (window.__API_BASE_URL__ && window.__API_BASE_URL__.trim()) {
+    let clean = window.__API_BASE_URL__.trim().replace(/\/+$/, '');
+    if (!clean.endsWith('/api') && !clean.includes('/api/')) clean = `${clean}/api`;
+    return clean;
+  }
+
+  // 4. HTML meta tag override: <meta name="backend-api-url" content="...">
+  const metaUrl = document.querySelector('meta[name="backend-api-url"]')?.content;
+  if (metaUrl && metaUrl.trim()) {
+    let clean = metaUrl.trim().replace(/\/+$/, '');
+    if (!clean.endsWith('/api') && !clean.includes('/api/')) clean = `${clean}/api`;
+    return clean;
+  }
+
+  // 5. Fallback same-origin /api
   return '/api';
+}
+
+function getBackendHint() {
+  const isLocal = typeof window !== 'undefined' && 
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  return isLocal
+    ? 'Ensure FastAPI backend is running locally on port 8000 (run start-dev.bat).'
+    : `Ensure deployed backend at ${API_CONFIG.BASE_URL} is live, or configure your Render backend URL in UI Settings.`;
 }
 
 export const API_CONFIG = {
@@ -53,23 +84,31 @@ export class ApiService {
    * Test connection to FastAPI backend with auto-discovery fallback
    */
   static async checkHealth() {
-    const saved = localStorage.getItem('tamilvoice_backend_url');
+    const isLocalHost = typeof window !== 'undefined' && 
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('tamilvoice_backend_url') : null;
+    
+    // Remote environments (Vercel) should NEVER probe 127.0.0.1 or localhost (causes mixed-content/connection refused)
+    const localCandidates = isLocalHost
+      ? [`${window.location.protocol}//127.0.0.1:8000/api`, `${window.location.protocol}//localhost:8000/api`]
+      : [];
+
     const candidates = [
       API_CONFIG.BASE_URL,
       saved,
-      window.__API_BASE_URL__,
-      `${window.location.protocol}//127.0.0.1:8000/api`,
-      `${window.location.protocol}//localhost:8000/api`,
+      typeof window !== 'undefined' ? window.__API_BASE_URL__ : null,
+      ...localCandidates,
       '/api'
     ].filter(Boolean);
-    const uniqueCandidates = [...new Set(candidates)];
+    const uniqueCandidates = [...new Set(candidates.map(u => (typeof u === 'string' ? u.trim().replace(/\/+$/, '') : '')))].filter(Boolean);
 
     for (const cand of uniqueCandidates) {
       try {
         const response = await fetch(`${cand}/health`, {
           method: 'GET',
           headers: { Accept: 'application/json' },
-          signal: AbortSignal.timeout(3000),
+          signal: AbortSignal.timeout(4000),
         });
         if (response.ok) {
           const data = await response.json();
@@ -130,7 +169,7 @@ export class ApiService {
         throw new Error(`[Stage 2: Backend Connection] Request to ${endpoint} timed out after ${timeoutMs / 1000}s. Check backend server.`);
       }
       if (error.name === 'TypeError' && error.message.includes('fetch')) {
-        throw new Error(`[Stage 2: Backend Connection] Could not connect to FastAPI at ${API_CONFIG.BASE_URL}. Ensure uvicorn backend server is running on port 8000.`);
+        throw new Error(`[Stage 2: Backend Connection] Could not connect to FastAPI at ${API_CONFIG.BASE_URL}. ${getBackendHint()}`);
       }
       throw error;
     }
@@ -392,7 +431,7 @@ export class ApiService {
         throw new Error('[Stage 4: Gnani STT] STT transcription timed out after 35s.');
       }
       if (err.name === 'TypeError' && err.message.includes('fetch')) {
-        throw new Error(`[Stage 2: Backend Connection] Could not reach ${API_CONFIG.BASE_URL}/voice/transcribe. Is FastAPI running?`);
+        throw new Error(`[Stage 2: Backend Connection] Could not reach ${API_CONFIG.BASE_URL}/voice/transcribe. ${getBackendHint()}`);
       }
       throw err;
     }
@@ -439,7 +478,7 @@ export class ApiService {
         throw new Error('[Stage 3: Audio Upload / Pipeline Timeout] Voice command request timed out. Please check network and server.');
       }
       if (err.name === 'TypeError' && err.message.includes('fetch')) {
-        throw new Error(`[Stage 2: Backend Connection] Network error connecting to ${API_CONFIG.BASE_URL}/voice/command. Ensure FastAPI backend is running.`);
+        throw new Error(`[Stage 2: Backend Connection] Network error connecting to ${API_CONFIG.BASE_URL}/voice/command. ${getBackendHint()}`);
       }
       throw err;
     }
@@ -474,7 +513,7 @@ export class ApiService {
         throw new Error('[Stage 7: Gnani TTS] TTS synthesis timed out after 25s.');
       }
       if (err.name === 'TypeError' && err.message.includes('fetch')) {
-        throw new Error(`[Stage 2: Backend Connection] Could not reach TTS service at ${API_CONFIG.BASE_URL}/voice/speak.`);
+        throw new Error(`[Stage 2: Backend Connection] Could not reach TTS service at ${API_CONFIG.BASE_URL}/voice/speak. ${getBackendHint()}`);
       }
       throw err;
     }

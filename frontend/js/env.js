@@ -1,7 +1,6 @@
 /**
- * TamilVoice Kirana AI - Runtime Environment Config for Vercel & Production Deployments
- * Set your deployed FastAPI backend URL below (Render, Railway, Fly.io, etc.).
- * Example: window.__API_BASE_URL__ = "https://tamilvoice-kirana-api.onrender.com/api";
+ * TamilVoice Kirana AI - Runtime Environment Config
+ * Automatically injected by build.js during deployment.
+ * Local development defaults to http://127.0.0.1:8000/api when blank.
  */
-window.__API_BASE_URL__ = window.__API_BASE_URL__ || "";
-
+window.__API_BASE_URL__ = "";

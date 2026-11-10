@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "buildCommand": "node build.js",
   "outputDirectory": "frontend",
   "cleanUrls": true,
   "trailingSlash": false,
@@ -19,4 +20,3 @@
     }
   ]
 }
-

@@ -191,11 +191,14 @@ export const Dashboard = {
         // Live backend status indicator
         const statusBanner = document.querySelector('.system-status-alert');
         if (statusBanner) {
+          const apiBase = (typeof API_CONFIG !== 'undefined' && API_CONFIG.BASE_URL) ? API_CONFIG.BASE_URL : 'http://127.0.0.1:8000/api';
+          const cleanBase = apiBase.replace(/\/api\/?$/, '');
+          const docsUrl = `${cleanBase}/docs`;
           statusBanner.innerHTML = `
             <div class="system-status-content">
               <span class="badge-pill success" style="font-weight: 700;">BACKEND LIVE</span>
               <span class="system-status-text">
-                <strong>Connected:</strong> FastAPI + SQLite Database active at <a href="http://127.0.0.1:8000/docs" target="_blank" style="text-decoration: underline; color: #166534;">http://127.0.0.1:8000</a>.
+                <strong>Connected:</strong> FastAPI backend active at <a href="${docsUrl}" target="_blank" style="text-decoration: underline; color: #166534;">${cleanBase}</a>.
               </span>
             </div>
           `;
@@ -206,6 +209,24 @@ export const Dashboard = {
       }
     } catch (err) {
       console.log('[Dashboard] Backend offline or loading, using local store data.');
+      const statusBanner = document.querySelector('.system-status-alert');
+      if (statusBanner) {
+        const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+        const hint = isLocal
+          ? 'FastAPI backend is offline. Run start-dev.bat to launch the backend on port 8000.'
+          : 'Backend not connected. Check your deployed API URL in Settings.';
+        statusBanner.innerHTML = `
+          <div class="system-status-content">
+            <span class="badge-pill warning" style="font-weight: 700;">BACKEND OFFLINE</span>
+            <span class="system-status-text">
+              <strong>Offline Mode:</strong> ${hint}
+            </span>
+          </div>
+        `;
+        statusBanner.style.backgroundColor = '#FEF3C7';
+        statusBanner.style.borderColor = '#FDE68A';
+        statusBanner.style.color = '#92400E';
+      }
     }
   },
 

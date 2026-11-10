@@ -1,0 +1,19 @@
+{
+  "name": "tamilvoice-kirana-ai-frontend",
+  "version": "1.0.0",
+  "description": "TamilVoice Kirana AI - Voice-first intelligent retail POS, inventory and billing dashboard for Indian Kirana stores.",
+  "private": true,
+  "scripts": {
+    "build": "node build.js"
+  },
+  "keywords": [
+    "kirana",
+    "pos",
+    "tamil-voice",
+    "fastapi",
+    "gemini",
+    "gnani"
+  ],
+  "author": "TamilVoice Kirana AI Team",
+  "license": "MIT"
+}

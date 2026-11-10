@@ -70,7 +70,11 @@ app.add_middleware(
 
 # Mount API Routers under /api
 api_prefix = settings.API_PREFIX
+
+# Mount health router at both root (/health) for cloud monitoring/Render and under /api (/api/health)
+app.include_router(health_router, prefix="")
 app.include_router(health_router, prefix=api_prefix)
+
 app.include_router(inventory_router, prefix=api_prefix)
 app.include_router(stock_router, prefix=api_prefix)
 app.include_router(sales_router, prefix=api_prefix)
@@ -99,4 +103,15 @@ def root():
 frontend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "frontend"))
 if os.path.exists(frontend_dir):
     app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(
+        "backend.app.main:app",
+        host=settings.APP_HOST,
+        port=settings.APP_PORT,
+        reload=settings.DEBUG,
+    )
+
 

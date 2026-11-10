@@ -5,6 +5,7 @@ services:
     buildCommand: pip install -r backend/requirements.txt
     preDeployCommand: python -m backend.app.run_migrations
     startCommand: uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
@@ -20,4 +21,3 @@ services:
         sync: false
       - key: TIMEZONE
         value: Asia/Kolkata
-

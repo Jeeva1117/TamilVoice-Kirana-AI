@@ -69,3 +69,4 @@ def test_local_development_preserves_sqlite():
         url = get_database_url()
         assert url.startswith("sqlite:///")
         assert "kirana_ai.db" in url
+

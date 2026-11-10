@@ -577,8 +577,11 @@ export const Sales = {
         console.warn('Backend createSale unavailable, falling back to local Store:', apiErr);
       }
 
-      const newSale = Store.recordSale(saleData);
-      const invoiceId = createdInvoice || newSale.id;
+      let invoiceId = createdInvoice;
+      if (!invoiceId) {
+        const newSale = Store.recordSale(saleData);
+        invoiceId = newSale.id;
+      }
       this.pendingSaleData = null;
 
       if (this.modalConfirmSale) this.modalConfirmSale.classList.remove('open');
