@@ -2,7 +2,7 @@
 import os
 from pathlib import Path
 from typing import List, Optional, Union
-from dotenv import load_dotenv
+from dotenv import load_dotenv, dotenv_values
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -10,22 +10,40 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 ROOT_DIR = BACKEND_DIR.parent
 
-# Explicitly load .env files into environment variables (root .env, then backend .env)
+# Read .env files with backend/.env taking priority
+_backend_env = dotenv_values(BACKEND_DIR / ".env")
+_root_env = dotenv_values(ROOT_DIR / ".env")
+
+# Populate process environment (backend takes precedence over root)
 load_dotenv(ROOT_DIR / ".env")
-load_dotenv(BACKEND_DIR / ".env")
+load_dotenv(BACKEND_DIR / ".env", override=True)
+
+
+def _get_config_value(key: str, default: str = "") -> str:
+    """Read configuration value prioritizing backend/.env, then root .env, then process environment."""
+    val = _backend_env.get(key)
+    if val is not None and str(val).strip():
+        return str(val).strip()
+    val = _root_env.get(key)
+    if val is not None and str(val).strip():
+        return str(val).strip()
+    val = os.getenv(key)
+    if val is not None and str(val).strip():
+        return str(val).strip()
+    return default
 
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "TamilVoice Kirana AI"
     VERSION: str = "1.0.0"
     API_PREFIX: str = "/api"
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./kirana_ai.db")
+    DATABASE_URL: str = _get_config_value("DATABASE_URL", "sqlite:///./kirana_ai.db")
 
     # Application Settings from .env.example
-    APP_ENV: str = os.getenv("APP_ENV", "development")
-    APP_HOST: str = os.getenv("APP_HOST", "127.0.0.1")
-    APP_PORT: int = int(os.getenv("APP_PORT", "8000"))
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "replace_with_a_secure_random_secret_key")
+    APP_ENV: str = _get_config_value("APP_ENV", "development")
+    APP_HOST: str = _get_config_value("APP_HOST", "127.0.0.1")
+    APP_PORT: int = int(_get_config_value("APP_PORT", "8000"))
+    SECRET_KEY: str = _get_config_value("SECRET_KEY", "replace_with_a_secure_random_secret_key")
 
     CORS_ORIGINS: Union[List[str], str] = [
         "http://localhost:3000",
@@ -50,31 +68,34 @@ class Settings(BaseSettings):
         elif isinstance(v, list):
             return v
         return []
-    TIMEZONE: str = os.getenv("TIMEZONE", "Asia/Kolkata")
-    DEFAULT_CURRENCY: str = os.getenv("DEFAULT_CURRENCY", "INR")
-    DEBUG: bool = os.getenv("DEBUG", "True").lower() in ("true", "1", "yes")
+    TIMEZONE: str = _get_config_value("TIMEZONE", "Asia/Kolkata")
+    DEFAULT_CURRENCY: str = _get_config_value("DEFAULT_CURRENCY", "INR")
+    DEBUG: bool = _get_config_value("DEBUG", "True").lower() in ("true", "1", "yes")
 
-    # Google Gemini API Settings (Phase 5)
-    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
-    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
-    GEMINI_ENABLED: bool = os.getenv("GEMINI_ENABLED", "true").lower() in ("true", "1", "yes")
-    GEMINI_TIMEOUT_SECONDS: float = float(os.getenv("GEMINI_TIMEOUT_SECONDS", "15.0"))
+    # Google Gemini API Settings (Phase 5) - Preserved
+    GEMINI_API_KEY: str = _get_config_value("GEMINI_API_KEY", "")
+    GEMINI_MODEL: str = _get_config_value("GEMINI_MODEL", "gemini-3-flash-preview")
+    GEMINI_ENABLED: bool = _get_config_value("GEMINI_ENABLED", "true").lower() in ("true", "1", "yes")
+    GEMINI_TIMEOUT_SECONDS: float = float(_get_config_value("GEMINI_TIMEOUT_SECONDS", "15.0"))
 
-    # Gnani.ai Prisma STT & Timbre TTS Settings (Phase 6)
-    GNANI_API_KEY: str = os.getenv("GNANI_API_KEY", "")
-    GNANI_ACCESS_TOKEN: str = os.getenv("GNANI_ACCESS_TOKEN", "")
-    GNANI_LANG_CODE: str = os.getenv("GNANI_LANG_CODE", "ta-IN")
-    GNANI_STT_MODEL: str = os.getenv("GNANI_STT_MODEL", "prisma-v2.5")
-    GNANI_TTS_MODEL: str = os.getenv("GNANI_TTS_MODEL", "timbre-v2.5")
-    GNANI_STT_ENABLED: bool = os.getenv("GNANI_STT_ENABLED", "true").lower() in ("true", "1", "yes")
-    GNANI_TTS_ENABLED: bool = os.getenv("GNANI_TTS_ENABLED", "true").lower() in ("true", "1", "yes")
-    GNANI_API_BASE_URL: str = os.getenv("GNANI_API_BASE_URL", "https://api.vachana.ai")
-    GNANI_STT_TIMEOUT: float = float(os.getenv("GNANI_STT_TIMEOUT", "30.0"))
-    GNANI_TTS_TIMEOUT: float = float(os.getenv("GNANI_TTS_TIMEOUT", "30.0"))
-    MAX_AUDIO_SIZE_BYTES: int = int(os.getenv("MAX_AUDIO_SIZE_BYTES", str(10 * 1024 * 1024)))  # 10 MB
+    # Unified Gnani.ai Platform Configuration (Prisma v2.5 STT & Timbre v2.5 TTS)
+    # The single GNANI_API_KEY powers both STT and TTS without requiring separate keys
+    GNANI_API_KEY: str = _get_config_value("GNANI_API_KEY", "")
+    GNANI_ACCESS_TOKEN: str = _get_config_value("GNANI_ACCESS_TOKEN", "") or _get_config_value("GNANI_API_KEY", "")
+    GNANI_LANG_CODE: str = _get_config_value("GNANI_LANG_CODE", "ta-IN")
+    GNANI_STT_MODEL: str = _get_config_value("GNANI_STT_MODEL", "prisma-v2.5")
+    GNANI_TTS_MODEL: str = _get_config_value("GNANI_TTS_MODEL", "timbre-v2.5")
+    GNANI_TTS_VOICE: str = _get_config_value("GNANI_TTS_VOICE", "Nalini")
+    GNANI_STT_ENABLED: bool = _get_config_value("GNANI_STT_ENABLED", "true").lower() in ("true", "1", "yes")
+    GNANI_TTS_ENABLED: bool = _get_config_value("GNANI_TTS_ENABLED", "true").lower() in ("true", "1", "yes")
+    GNANI_API_BASE_URL: str = _get_config_value("GNANI_API_BASE_URL", "https://api.vachana.ai")
+    GNANI_STT_TIMEOUT: float = float(_get_config_value("GNANI_STT_TIMEOUT", "30.0"))
+    GNANI_TTS_TIMEOUT: float = float(_get_config_value("GNANI_TTS_TIMEOUT", "30.0"))
+    GNANI_TEST_CREDIT_BUDGET: int = int(_get_config_value("GNANI_TEST_CREDIT_BUDGET", "1000"))
+    MAX_AUDIO_SIZE_BYTES: int = int(_get_config_value("MAX_AUDIO_SIZE_BYTES", str(10 * 1024 * 1024)))  # 10 MB
 
     model_config = SettingsConfigDict(
-        env_file=[str(ROOT_DIR / ".env"), str(BACKEND_DIR / ".env"), ".env"],
+        env_file=[str(BACKEND_DIR / ".env"), str(ROOT_DIR / ".env"), ".env"],
         env_file_encoding="utf-8",
         extra="ignore"
     )
@@ -85,14 +106,19 @@ class Settings(BaseSettings):
         return self.GEMINI_ENABLED and bool(self.GEMINI_API_KEY and self.GEMINI_API_KEY.strip())
 
     @property
+    def is_gnani_ready(self) -> bool:
+        """Check if the single unified GNANI_API_KEY is configured for both STT and TTS."""
+        return bool(self.GNANI_API_KEY and self.GNANI_API_KEY.strip())
+
+    @property
     def is_gnani_stt_ready(self) -> bool:
-        """Check if Gnani Prisma STT is enabled and configured."""
-        return self.GNANI_STT_ENABLED and bool(self.GNANI_API_KEY and self.GNANI_API_KEY.strip())
+        """Check if Gnani Prisma STT is enabled and configured with GNANI_API_KEY."""
+        return self.GNANI_STT_ENABLED and self.is_gnani_ready
 
     @property
     def is_gnani_tts_ready(self) -> bool:
-        """Check if Gnani Timbre TTS is enabled and configured."""
-        return self.GNANI_TTS_ENABLED and bool(self.GNANI_API_KEY and self.GNANI_API_KEY.strip())
+        """Check if Gnani Timbre TTS is enabled and configured with GNANI_API_KEY."""
+        return self.GNANI_TTS_ENABLED and self.is_gnani_ready
 
 
 settings = Settings()

@@ -204,26 +204,48 @@ async def test_tts_timeout_raises_504():
 
 def test_api_transcribe_audio_endpoint(client):
     """POST /api/voice/transcribe transcribes uploaded audio."""
-    fake_audio = io.BytesIO(b"RIFF" + (b"\x00" * 300))
-    files = {"audio_file": ("test.wav", fake_audio, "audio/wav")}
-    res = client.post("/api/voice/transcribe", files=files, data={"language": "ta-IN"})
-    assert res.status_code == status.HTTP_200_OK
-    data = res.json()
-    assert data["success"] is True
-    assert "transcript" in data
+    mock_transcribe = TranscribeResponse(
+        success=True,
+        transcript="Innaiku 5 kilo rice stock add pannunga.",
+        provider="mock_prisma",
+        model="mock-prisma-v2.5",
+        language="ta-IN",
+        detected_language="ta-IN",
+        confidence=0.96,
+        is_mock=True,
+        duration_seconds=1.0,
+        audio_size_bytes=300,
+        message="Transcribed successfully."
+    )
+    with patch("backend.app.services.gnani_stt_service.gnani_stt_service.transcribe_audio", AsyncMock(return_value=mock_transcribe)):
+        fake_audio = io.BytesIO(b"RIFF" + (b"\x00" * 300))
+        files = {"audio_file": ("test.wav", fake_audio, "audio/wav")}
+        res = client.post("/api/voice/transcribe", files=files, data={"language": "ta-IN"})
+        assert res.status_code == status.HTTP_200_OK
+        data = res.json()
+        assert data["success"] is True
+        assert "transcript" in data
 
 
 def test_api_speak_endpoint_returns_wav(client):
     """POST /api/voice/speak returns audio/wav stream."""
-    payload = {
-        "text": "வணக்கம்! உங்கள் சரக்கு விவரங்கள் சரிபார்க்கவும்.",
-        "language": "ta-IN",
-        "speed": 1.0
-    }
-    res = client.post("/api/voice/speak", json=payload)
-    assert res.status_code == status.HTTP_200_OK
-    assert res.headers["content-type"].startswith("audio/wav")
-    assert res.content[:4] == b"RIFF"
+    fake_wav = b"RIFF" + (b"\x00" * 36) + b"data" + (b"\x00" * 100)
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.headers = {"content-type": "audio/wav"}
+    mock_response.content = fake_wav
+
+    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
+        mock_post.return_value = mock_response
+        payload = {
+            "text": "வணக்கம்! உங்கள் சரக்கு விவரங்கள் சரிபார்க்கவும்.",
+            "language": "ta-IN",
+            "speed": 1.0
+        }
+        res = client.post("/api/voice/speak", json=payload)
+        assert res.status_code == status.HTTP_200_OK
+        assert res.headers["content-type"].startswith("audio/wav")
+        assert res.content[:4] == b"RIFF"
 
 
 def test_api_command_with_transcript_workflow(client, db):
@@ -300,14 +322,28 @@ def test_api_command_with_audio_file(client, db):
     fake_audio = io.BytesIO(b"fake_mic_recording_bytes_12345" * 15)
     files = {"audio_file": ("recording.webm", fake_audio, "audio/webm")}
 
+    mock_transcribe = TranscribeResponse(
+        success=True,
+        transcript="Innaiku 5 kilo rice stock add pannunga",
+        provider="mock_prisma",
+        model="mock-prisma-v2.5",
+        language="ta-IN",
+        detected_language="ta-IN",
+        confidence=0.96,
+        is_mock=True,
+        duration_seconds=1.0,
+        audio_size_bytes=300,
+        message="Transcribed successfully."
+    )
     with patch.object(settings, "GEMINI_API_KEY", "mock_key_xyz"), patch.object(settings, "GEMINI_ENABLED", True):
         with patch("backend.app.services.gemini_client.gemini_client.generate_intent_async", AsyncMock(return_value=mocked_intent)):
-            res = client.post("/api/voice/command", files=files, data={"language": "ta-IN"})
-            assert res.status_code == status.HTTP_200_OK
-            data = res.json()
-            assert data["success"] is True
-            assert "transcript" in data
-            assert data["intent"] is not None
+            with patch("backend.app.services.gnani_stt_service.gnani_stt_service.transcribe_audio", AsyncMock(return_value=mock_transcribe)):
+                res = client.post("/api/voice/command", files=files, data={"language": "ta-IN"})
+                assert res.status_code == status.HTTP_200_OK
+                data = res.json()
+                assert data["success"] is True
+                assert "transcript" in data
+                assert data["intent"] is not None
 
 
 def test_legacy_voice_process_endpoint(client):

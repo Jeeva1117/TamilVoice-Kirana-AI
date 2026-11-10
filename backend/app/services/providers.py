@@ -20,8 +20,14 @@ from backend.app.schemas.voice import TranscribeResponse
 from backend.app.schemas.ai import (
     CommandIntent,
     CommandEntities,
+    OrderItemEntity,
     IntentCategory,
     normalize_unit_str,
+)
+from backend.app.services.speech_normalizer import (
+    normalize_spoken_numbers,
+    extract_kirana_items_from_text,
+    detect_spoken_language,
 )
 
 logger = logging.getLogger(__name__)
@@ -104,6 +110,33 @@ class IntentProvider(ABC):
         pass
 
 
+def _match_product_from_text(lower_text: str) -> Tuple[Optional[str], str, Optional[str]]:
+    """Helper to resolve Kirana catalog product, default unit, and Tamil display name."""
+    if "gold winner" in lower_text or "goldwinner" in lower_text:
+        return "Gold Winner Oil", "litre", "சூரியகாந்தி எண்ணெய்"
+    if "oil" in lower_text or "எண்ணெய்" in lower_text:
+        return "Gold Winner Oil", "litre", "சூரியகாந்தி எண்ணெய்"
+    if any(w in lower_text for w in ["wheat", "godhumai", "gothumai", "atta", "கோதுமை"]):
+        return "Wheat Flour", "kg", "கோதுமை மாவு"
+    if any(w in lower_text for w in ["tomato", "thakkali", "தக்காளி"]):
+        return "Tomato", "kg", "தக்காளி"
+    if any(w in lower_text for w in ["onion", "vengayam", "வெங்காயம்"]):
+        return "Onion", "kg", "வெங்காயம்"
+    if any(w in lower_text for w in ["tea powder", "டீ தூள்", "தேயிலை தூள்", "தேயிலை", "டீ", "tea"]):
+        return "Tea Powder", "packet", "டீ தூள்"
+    if any(w in lower_text for w in ["masala", "மசாலா"]):
+        return "Masala Powder", "kg", "மசாலா"
+    if any(w in lower_text for w in ["milk", "paal", "பால்"]):
+        return "Milk", "litre", "பால்"
+    if any(w in lower_text for w in ["sugar", "sarkarai", "sakkarai", "seeni", "சர்க்கரை", "சீனி"]):
+        return "Sugar", "packet", "சர்க்கரை"
+    if any(w in lower_text for w in ["rice", "arisi", "ponni", "அரிசி"]):
+        return "Ponni Boiled Rice", "kg", "அரிசி"
+    if any(w in lower_text for w in ["honey", "thean", "then", "தேன்"]):
+        return "Pure Honey", "bottle", "தேன்"
+    return None, "kg", None
+
+
 class MockIntentProvider(IntentProvider):
     """
     Intelligent Rule-Based Mock Gemini Provider.
@@ -113,151 +146,246 @@ class MockIntentProvider(IntentProvider):
 
     async def extract_intent(self, text: str) -> CommandIntent:
         raw = text.strip()
-        lower = raw.lower()
+        detected_lang = detect_spoken_language(raw)
+        # Normalize Tamil & Tanglish number words to digits first
+        norm_text = normalize_spoken_numbers(raw)
+        lower = norm_text.lower()
 
         # -----------------------------------------------------------------
-        # Pattern 1: Missing Product (e.g., "5 kilo add pannunga", "add 5 kg")
+        # Pattern 0A: Affirmative Confirmation ("Aama", "Seri", "Confirm", "Confirm pannunga", "Pannidunga", "Yes")
         # -----------------------------------------------------------------
-        if re.search(r"^\s*(\d+(\.\d+)?)\s*(kilo|kg|litre|litres|packets?)\s*(add|சேர்க்க)", lower):
-            m = re.search(r"(\d+(\.\d+)?)\s*(kilo|kg|litre|litres|packets?)", lower)
-            qty = float(m.group(1)) if m else 5.0
-            unit = normalize_unit_str(m.group(3)) if m else "kg"
+        affirmative_words = [
+            "aama", "aam", "seri", "confirm", "confirm pannunga", "pannidunga", "kodu",
+            "yes", "seringa", "kudunga", "pannunga", "aama pannunga", "seri pannunga",
+            "ஆமா", "ஆம்", "சரி", "உறுதி", "உறுதிப்படுத்து"
+        ]
+        is_affirmative = (
+            lower in affirmative_words or
+            re.match(r"^(?:aama|seri|confirm|yes|kodu|ஆமா|சரி|ஆம்)(?:\s+(?:pannunga|pannidunga|pannalam|kudunga))?[.!]?$", lower) is not None
+        )
+        if is_affirmative:
+            return CommandIntent(
+                intent=IntentCategory.CONFIRM_ACTION,
+                language=detected_lang,
+                original_text=raw,
+                normalized_text="Confirm pending operation",
+                entities=CommandEntities(),
+                confidence=0.99,
+                requires_clarification=False,
+            )
+
+        # -----------------------------------------------------------------
+        # Pattern 0B: Cancellation ("Cancel", "Cancel pannunga", "Vendaam", "Venaam", "Vendam", "No")
+        # -----------------------------------------------------------------
+        cancellation_words = [
+            "cancel", "cancel pannunga", "vendaam", "venaam", "vendam", "vendang",
+            "no", "nirutha", "வேண்டாம்", "ரத்து", "ரத்து செய்"
+        ]
+        is_cancellation = (
+            lower in cancellation_words or
+            re.match(r"^(?:cancel|vendaam|venaam|vendam|no|ரத்து)(?:\s+(?:pannunga|pannidunga|seiyavum))?[.!]?$", lower) is not None
+        )
+        if is_cancellation:
+            return CommandIntent(
+                intent=IntentCategory.CANCEL_ACTION,
+                language=detected_lang,
+                original_text=raw,
+                normalized_text="Cancel pending operation",
+                entities=CommandEntities(),
+                confidence=0.99,
+                requires_clarification=False,
+            )
+
+        # -----------------------------------------------------------------
+        # Pattern 0B.1: Politeness & Gratitude ("Thank you", "நன்றி", "Thanks", "Nandri")
+        # -----------------------------------------------------------------
+        thank_words = ["thank you", "thanks", "நன்றி", "nandri", "thank you so much", "okay thank you", "romba nandri", "thx"]
+        is_thank_you = lower in thank_words or bool(re.search(r"\b(?:thank you|thanks|நன்றி|nandri)\b", lower))
+        if is_thank_you:
+            return CommandIntent(
+                intent=IntentCategory.THANK_YOU,
+                language=detected_lang,
+                original_text=raw,
+                normalized_text="Merchant expressed gratitude",
+                entities=CommandEntities(),
+                confidence=0.99,
+                requires_clarification=False,
+            )
+
+        # -----------------------------------------------------------------
+        # Pattern 0B.2: Greetings ("Vanakkam", "வணக்கம்", "Hello", "Hi")
+        # -----------------------------------------------------------------
+        greeting_words = ["vanakkam", "vanakam", "வணக்கம்", "hello", "hi", "namaste", "good morning", "good evening"]
+        is_greeting = lower in greeting_words or any(re.match(rf"^(?:{gw})(?:\s+(?:assistant|ai|sir|ji|pa))?[.!]*$", lower) for gw in greeting_words)
+        if is_greeting:
+            return CommandIntent(
+                intent=IntentCategory.GREETING,
+                language=detected_lang,
+                original_text=raw,
+                normalized_text="Merchant greeting",
+                entities=CommandEntities(),
+                confidence=0.99,
+                requires_clarification=False,
+            )
+
+        # -----------------------------------------------------------------
+        # Pattern 0C: Contextual Relative Addition ("Innum 5 kilo add pannunga", "innum 5 add pannu")
+        # -----------------------------------------------------------------
+        if ("innum" in lower or "இன்னும்" in lower) and not ("sales" in lower or "report" in lower):
+            qty_match = re.search(r"(\d+(\.\d+)?)", lower)
+            qty = float(qty_match.group(1)) if qty_match else 5.0
+            unit = "kg"
+            if "litre" in lower or "லிட்டர்" in lower:
+                unit = "litre"
+            elif "packet" in lower or "பாக்கெட்" in lower:
+                unit = "packet"
             return CommandIntent(
                 intent=IntentCategory.ADD_STOCK,
                 language="Tanglish",
                 original_text=raw,
-                normalized_text=f"Add {qty} {unit} to stock",
+                normalized_text=f"Add {qty} {unit} more to current product in context",
                 entities=CommandEntities(product_name=None, quantity=qty, unit=unit),
-                confidence=0.92,
-                requires_clarification=True,
-                clarification_question="Which product would you like to update?",
+                confidence=0.98,
+                requires_clarification=False,
             )
 
         # -----------------------------------------------------------------
-        # Pattern 2: Multi-Item Sale
-        # "Customer-ku 2 kilo rice, 1 kilo sugar, 2 packet tea powder note pannunga"
+        # Pattern 0D: Contextual Relative Reduction ("Adhula 2 kilo remove pannunga", "2 kilo kammi pannunga")
         # -----------------------------------------------------------------
-        if "customer" in lower and ("sugar" in lower or "tea" in lower or "rice" in lower) and ("note" in lower or "sell" in lower or "sale" in lower):
-            # Primary entity is Rice 2kg, with full items recognized in multi-item flow
+        if ("adhula" in lower or "remove" in lower or "korainga" in lower or "eduthukonga" in lower) and not ("low stock" in lower or "stock evlo" in lower):
+            qty_match = re.search(r"(\d+(\.\d+)?)", lower)
+            qty = float(qty_match.group(1)) if qty_match else 2.0
+            unit = "kg"
+            if "litre" in lower or "லிட்டர்" in lower:
+                unit = "litre"
+            elif "packet" in lower or "பாக்கெட்" in lower:
+                unit = "packet"
             return CommandIntent(
                 intent=IntentCategory.SELL_PRODUCT,
                 language="Tanglish",
                 original_text=raw,
-                normalized_text="Record sale for customer: 2 kg Rice, 1 kg Sugar, 2 packet Tea Powder",
+                normalized_text=f"Reduce {qty} {unit} from current product in context",
+                entities=CommandEntities(product_name=None, quantity=qty, unit=unit),
+                confidence=0.98,
+                requires_clarification=False,
+            )
+
+        is_tamil_script = bool(re.search(r"[\u0B80-\u0BFF]", raw))
+
+        # -----------------------------------------------------------------
+        # Pattern 1: Multi-Item Sale
+        # "Customer-ku one kilo tomato, two kilo onion, three kilo rice, two litre milk, two packet sugar, two packet tea powder sale pannunga"
+        # -----------------------------------------------------------------
+        multi_items = extract_kirana_items_from_text(raw)
+        if len(multi_items) >= 2 and ("sale" in lower or "sell" in lower or "note" in lower or "kuduthuten" in lower or "customer" in lower or "bill" in lower or "பில்" in lower):
+            items_entities = [OrderItemEntity(**it) for it in multi_items]
+            total_qty = sum(it.quantity for it in items_entities)
+            item_names_str = ", ".join(f"{it.quantity} {it.unit} {it.product_name}" for it in items_entities)
+            return CommandIntent(
+                intent=IntentCategory.SELL_PRODUCT,
+                language="Tamil" if is_tamil_script else "Tanglish",
+                original_text=raw,
+                normalized_text=f"Record multi-item customer sale: {item_names_str}",
                 entities=CommandEntities(
-                    product_name="Rice",
-                    quantity=2.0,
-                    unit="kg",
+                    product_name="Multiple Items",
+                    quantity=total_qty,
+                    unit="items",
                     customer_name="Customer",
                     payment_method="CASH",
+                    items=items_entities
                 ),
                 confidence=0.98,
                 requires_clarification=False,
             )
 
         # -----------------------------------------------------------------
-        # Pattern 3: ADD_STOCK
-        # "Innaiku 5 kilo rice stock add pannunga", "Add 5 kg rice", "5 கிலோ அரிசி சரக்கு சேர்க்க"
+        # Pattern 2: Missing Product (e.g. "5 kilo add pannunga", "add 5 kg")
         # -----------------------------------------------------------------
-        if ("add" in lower or "சேர்க்க" in lower or "vandhirukku" in lower or "recieved" in lower) and "stock" in lower or "add" in lower:
-            # Check for unknown product: "Dragon Fruit"
-            if "dragon fruit" in lower:
-                return CommandIntent(
-                    intent=IntentCategory.ADD_STOCK,
-                    language="Tanglish",
-                    original_text=raw,
-                    normalized_text="Add 5 kg Dragon Fruit to inventory",
-                    entities=CommandEntities(product_name="Dragon Fruit", quantity=5.0, unit="kg"),
-                    confidence=0.95,
-                    requires_clarification=False,
-                )
-
-            # Check product name
-            prod = "Rice"
-            if "sugar" in lower or "சீனி" in lower or "சர்க்கரை" in lower:
-                prod = "Sugar"
-            elif "milk" in lower or "பால்" in lower:
-                prod = "Milk"
-            elif "tea" in lower or "டீ" in lower:
-                prod = "Tea Powder"
-            elif "wheat" in lower or "atta" in lower or "கோதுமை" in lower:
-                prod = "Wheat Flour"
-            elif "oil" in lower or "எண்ணெய்" in lower:
-                prod = "Sunflower Oil"
-
-            qty_match = re.search(r"(\d+(\.\d+)?)", lower)
-            qty = float(qty_match.group(1)) if qty_match else 5.0
-
+        prod, def_unit, prod_ta = _match_product_from_text(lower)
+        unit = def_unit
+        if "litre" in lower or "லிட்டர்" in lower:
+            unit = "litre"
+        elif "packet" in lower or "பாக்கெட்" in lower:
+            unit = "packet"
+        elif "kilo" in lower or "kg" in lower or "கிலோ" in lower:
             unit = "kg"
-            if "litre" in lower or "லிட்டர்" in lower:
-                unit = "litre"
-            elif "packet" in lower or "பாக்கெட்" in lower:
-                unit = "packet"
 
+        if not prod and ("add" in lower or "சேர்க்க" in lower or ("stock" in lower and not ("low" in lower or "kammi" in lower or "evlo" in lower or "report" in lower or "check" in lower or "sollu" in lower))):
+            qty_match = re.search(r"(\d+(\.\d+)?)", lower)
+            qty = float(qty_match.group(1)) if qty_match else None
             return CommandIntent(
                 intent=IntentCategory.ADD_STOCK,
-                language="Tamil" if re.search(r"[\u0B80-\u0BFF]", raw) else "Tanglish",
+                language="Tamil" if is_tamil_script else "Tanglish",
                 original_text=raw,
-                normalized_text=f"Add {qty} {unit} {prod} to inventory",
-                entities=CommandEntities(product_name=prod, quantity=qty, unit=unit),
-                confidence=0.97,
-                requires_clarification=False,
+                normalized_text="Add stock (product unspecified)",
+                entities=CommandEntities(product_name=None, quantity=qty, unit=unit),
+                confidence=0.92,
+                requires_clarification=True,
+                clarification_question="எந்தப் பொருளைப் பற்றி சொல்கிறீர்கள்?" if is_tamil_script else "Endha product add pannanum?",
             )
 
         # -----------------------------------------------------------------
-        # Pattern 4: SELL_PRODUCT
-        # "Innaiku 2 kilo rice sell pannunga", "2 litre oil sell panniten", "விற்பனை"
+        # Pattern 3: Bill Creation ("மசாலா bill போடு", "அதுக்கு bill போடு", "bill podu", "பில் போடு")
         # -----------------------------------------------------------------
-        if "sell" in lower or "sale" in lower or "விற்று" in lower or "விற்பனை" in lower or "kuduthuten" in lower:
-            prod = "Rice"
-            unit = "kg"
-            if "oil" in lower or "எண்ணெய்" in lower:
-                prod = "Sunflower Oil"
-                unit = "litre"
-            elif "sugar" in lower or "சீனி" in lower:
-                prod = "Sugar"
-                unit = "kg"
-            elif "milk" in lower or "பால்" in lower:
-                prod = "Milk"
-                unit = "litre"
-            elif "tea" in lower or "டீ" in lower:
-                prod = "Tea Powder"
-                unit = "packet"
-
+        if ("bill" in lower or "பில்" in lower) and not ("sales" in lower or "report" in lower or "ethana" in lower or "count" in lower):
             qty_match = re.search(r"(\d+(\.\d+)?)", lower)
-            qty = float(qty_match.group(1)) if qty_match else 2.0
+            qty = float(qty_match.group(1)) if qty_match else None
 
-            if "litre" in lower:
-                unit = "litre"
-            elif "packet" in lower:
-                unit = "packet"
+            if not prod and not ("adhuku" in lower or "அதுக்கு" in lower):
+                return CommandIntent(
+                    intent=IntentCategory.SELL_PRODUCT,
+                    language="Tamil" if is_tamil_script else "Tanglish",
+                    original_text=raw,
+                    normalized_text="Create customer bill (product unspecified)",
+                    entities=CommandEntities(product_name=None, quantity=qty, unit=unit),
+                    confidence=0.94,
+                    requires_clarification=True,
+                    clarification_question="எந்தப் பொருளுக்கு பில் போட வேண்டும்?" if is_tamil_script else "Endha product-ku bill podanum?",
+                )
+
+            if prod and qty is None:
+                q_text = f"{prod_ta or prod} எவ்வளவு வேண்டும்?" if is_tamil_script else f"{prod} evlo venum?"
+                return CommandIntent(
+                    intent=IntentCategory.SELL_PRODUCT,
+                    language="Tamil" if is_tamil_script else "Tanglish",
+                    original_text=raw,
+                    normalized_text=f"Create bill for {prod} (quantity missing)",
+                    entities=CommandEntities(product_name=prod, quantity=None, unit=unit),
+                    confidence=0.95,
+                    requires_clarification=True,
+                    clarification_question=q_text,
+                )
 
             return CommandIntent(
                 intent=IntentCategory.SELL_PRODUCT,
-                language="Tanglish",
+                language="Tamil" if is_tamil_script else "Tanglish",
                 original_text=raw,
-                normalized_text=f"Record sale of {qty} {unit} {prod}",
+                normalized_text=f"Record sale of {qty} {unit} {prod or 'active item'}",
                 entities=CommandEntities(product_name=prod, quantity=qty, unit=unit, payment_method="CASH"),
                 confidence=0.96,
                 requires_clarification=False,
             )
 
         # -----------------------------------------------------------------
-        # Pattern 5: CHECK_STOCK
-        # "Rice stock evlo irukku?", "அரிசி இருப்பு எவ்வளவு உள்ளது?"
+        # Pattern 4: CHECK_STOCK (Read-only stock inquiry in Tamil, Tanglish, or English)
+        # "அரிசி stock எவ்வளவு?", "Rice stock evlo irukku?", "How much rice stock do we have?", "How many honey bottles do we have in stock?"
         # -----------------------------------------------------------------
-        if ("evlo irukku" in lower or "இருப்பு எவ்வளவு" in lower or "stock check" in lower or "how much stock" in lower) and "sales" not in lower:
-            prod = "Rice"
-            if "sugar" in lower:
-                prod = "Sugar"
-            elif "milk" in lower:
-                prod = "Milk"
-            elif "oil" in lower:
-                prod = "Sunflower Oil"
-
+        is_check_stock = (
+            any(w in lower for w in [
+                "evlo irukku", "இருப்பு எவ்வளவு", "stock check", "check stock",
+                "how much", "how many", "do we have", "in stock", "stock evlo",
+                "stock எவ்வளவு", "stock இல்லையா", "stock இருக்கா", "இருப்பு",
+                "stock details", "current stock", "stock quantity", "available stock",
+                "have in stock"
+            ])
+            and "sales" not in lower
+            and not ("add" in lower or "சேர்க்க" in lower or "சேரு" in lower or "vandhirukku" in lower or "bill" in lower or "sale" in lower)
+        )
+        if is_check_stock:
+            prod = prod or "Ponni Boiled Rice"
             return CommandIntent(
                 intent=IntentCategory.CHECK_STOCK,
-                language="Tamil" if re.search(r"[\u0B80-\u0BFF]", raw) else "Tanglish",
+                language=detected_lang,
                 original_text=raw,
                 normalized_text=f"Check current inventory for {prod}",
                 entities=CommandEntities(product_name=prod),
@@ -266,53 +394,170 @@ class MockIntentProvider(IntentProvider):
             )
 
         # -----------------------------------------------------------------
-        # Pattern 6: LOW_STOCK_QUERY
-        # "Sugar stock kammiya irukka?", "Low stock products sollunga", "குறைந்த இருப்பு"
+        # Pattern 5: ADD_STOCK
+        # "இன்னைக்கு rice add பண்ணு", "10 kilo godhumai maavu stock add pannunga", "அரை கிலோ tomato add பண்ணு"
+        # -----------------------------------------------------------------
+        if ("add" in lower or "சேர்க்க" in lower or "சேரு" in lower or "vandhirukku" in lower or "received" in lower or ("stock" in lower and not ("check" in lower or "evlo" in lower or "sales" in lower or "kammi" in lower or "low" in lower or "report" in lower or "best" in lower or "ethana" in lower or "sollu" in lower or "இல்லையா" in lower or "இருக்கா" in lower or "எவ்வளவு" in lower))):
+            prod = prod or "Ponni Boiled Rice"
+
+            qty_match = re.search(r"(\d+(\.\d+)?)", lower)
+            if not qty_match:
+                q_text = f"எவ்வளவு {prod_ta or prod} சேர்க்க வேண்டும்?" if is_tamil_script else f"Evlo {unit} {prod} add pannanum?"
+                return CommandIntent(
+                    intent=IntentCategory.ADD_STOCK,
+                    language=detected_lang,
+                    original_text=raw,
+                    normalized_text=f"Add {prod} to stock (quantity missing)",
+                    entities=CommandEntities(product_name=prod, quantity=None, unit=unit),
+                    confidence=0.95,
+                    requires_clarification=True,
+                    clarification_question=q_text,
+                )
+
+            qty = float(qty_match.group(1))
+
+            return CommandIntent(
+                intent=IntentCategory.ADD_STOCK,
+                language=detected_lang,
+                original_text=raw,
+                normalized_text=f"Add {qty} {unit} {prod} to inventory",
+                entities=CommandEntities(product_name=prod, quantity=qty, unit=unit),
+                confidence=0.98,
+                requires_clarification=False,
+            )
+
+        # -----------------------------------------------------------------
+        # Pattern 6: SELL_PRODUCT (Single Item or Fragmented e.g. "Tomato one kg", "தக்காளி ஒரு கிலோ")
+        # -----------------------------------------------------------------
+        if ("sell" in lower or "sale" in lower or "விற்று" in lower or "விற்பனை" in lower or "kuduthuten" in lower or (prod and re.search(r"\d+(\.\d+)?", lower))) and not ("evlo" in lower or "ethana" in lower or "report" in lower or "best" in lower or "top" in lower or "count" in lower or "எவ்வளவு" in lower or "இல்லையா" in lower or "stock" in lower):
+            prod = prod or "Ponni Boiled Rice"
+
+            qty_match = re.search(r"(\d+(\.\d+)?)", lower)
+            qty = float(qty_match.group(1)) if qty_match else 1.0
+
+            return CommandIntent(
+                intent=IntentCategory.SELL_PRODUCT,
+                language=detected_lang,
+                original_text=raw,
+                normalized_text=f"Record sale of {qty} {unit} {prod}",
+                entities=CommandEntities(product_name=prod, quantity=qty, unit=unit, payment_method="CASH"),
+                confidence=0.96,
+                requires_clarification=False,
+            )
+
+        # -----------------------------------------------------------------
+        # Pattern 7: LOW_STOCK_QUERY
+        # "Low stock products sollu", "Low stock products sollunga", "குறைந்த இருப்பு"
         # -----------------------------------------------------------------
         if "kammi" in lower or "low stock" in lower or "குறைந்த" in lower or "out of stock" in lower:
-            prod = None
-            if "sugar" in lower:
-                prod = "Sugar"
-            elif "rice" in lower:
-                prod = "Rice"
-
             return CommandIntent(
                 intent=IntentCategory.LOW_STOCK_QUERY,
-                language="Tanglish",
+                language="Tamil" if is_tamil_script else "Tanglish",
                 original_text=raw,
-                normalized_text="List low stock items" if not prod else f"Check if {prod} is running low",
-                entities=CommandEntities(product_name=prod),
-                confidence=0.95,
+                normalized_text="List low stock products",
+                entities=CommandEntities(),
+                confidence=0.98,
                 requires_clarification=False,
             )
 
         # -----------------------------------------------------------------
-        # Pattern 7: SALES_REPORT
-        # "Innaiku sales evlo?", "இன்றைய விற்பனை எவ்வளவு?"
+        # Pattern 8: BEST SELLING PRODUCT REPORT
+        # "Innaiku best selling product enna?", "Top selling product"
         # -----------------------------------------------------------------
-        if "sales evlo" in lower or "விற்பனை எவ்வளவு" in lower or "today sales" in lower or "innaiku sales" in lower:
+        if "best sell" in lower or "top sell" in lower or "best selling" in lower:
+            return CommandIntent(
+                intent=IntentCategory.PRODUCT_SALES_REPORT,
+                language="Tamil" if is_tamil_script else "Tanglish",
+                original_text=raw,
+                normalized_text="Show today's best selling product",
+                entities=CommandEntities(date="today"),
+                confidence=0.98,
+                requires_clarification=False,
+            )
+
+        # -----------------------------------------------------------------
+        # Pattern 9: SALES_REPORT & BILL COUNT
+        # "Innaiku sales evlo?", "Innaiku ethana bill potten?", "இன்றைய விற்பனை எவ்வளவு?", "இன்னைக்கு sales எவ்வளவு?"
+        # -----------------------------------------------------------------
+        if "sales evlo" in lower or "விற்பனை எவ்வளவு" in lower or "today sales" in lower or "innaiku sales" in lower or "ethana bill" in lower or "bill count" in lower or "sales எவ்வளவு" in lower or "விற்பனை" in lower:
             return CommandIntent(
                 intent=IntentCategory.SALES_REPORT,
-                language="Tamil" if re.search(r"[\u0B80-\u0BFF]", raw) else "Tanglish",
+                language="Tamil" if is_tamil_script else "Tanglish",
                 original_text=raw,
-                normalized_text="Show today's sales report",
+                normalized_text="Show today sales revenue and bill count",
                 entities=CommandEntities(date="today"),
-                confidence=0.99,
+                confidence=0.98,
                 requires_clarification=False,
             )
 
         # -----------------------------------------------------------------
-        # Default / Fallback
+        # Pattern 10: UPDATE_PRICE
         # -----------------------------------------------------------------
+        if ("price" in lower or "rate" in lower or "vilai" in lower or "விலை" in lower) and ("maathu" in lower or "update" in lower or "set" in lower or "podu" in lower or "change" in lower or "rupees" in lower or "ரூபாய்" in lower):
+            prod = prod or "Ponni Boiled Rice"
+            price_match = re.search(r"(\d+(\.\d+)?)", lower)
+            price_val = float(price_match.group(1)) if price_match else None
+
+            return CommandIntent(
+                intent=IntentCategory.UPDATE_PRICE,
+                language="Tamil" if is_tamil_script else "Tanglish",
+                original_text=raw,
+                normalized_text=f"Update selling price for {prod} to ₹{price_val}",
+                entities=CommandEntities(product_name=prod, price=price_val, quantity=price_val),
+                confidence=0.97,
+                requires_clarification=False if price_val else True,
+                clarification_question=None if price_val else (f"{prod_ta or prod} விலை எவ்வளவு ரூபாய்?" if is_tamil_script else f"{prod} selling price evlo rupees?"),
+            )
+
+        # -----------------------------------------------------------------
+        # Pattern 11: CREATE_PRODUCT
+        # -----------------------------------------------------------------
+        if ("new product" in lower or "pudhu product" in lower or "add product" in lower or "புது பொருள்" in lower or "register product" in lower):
+            cleaned = lower
+            for fw in ["new product", "pudhu product", "add product", "register product", "add", "pannunga", "podunga", "please"]:
+                cleaned = re.sub(r"\b" + re.escape(fw) + r"\b", "", cleaned)
+            price_match = re.search(r"(\d+(\.\d+)?)", cleaned)
+            price_val = float(price_match.group(1)) if price_match else 50.0
+            cleaned = re.sub(r"(\d+(\.\d+)?)", "", cleaned)
+            for w in ["rupees", "rs", "kilo", "kg", "litre", "per", "விலை", "ரூபாய்"]:
+                cleaned = re.sub(r"\b" + re.escape(w) + r"\b", "", cleaned)
+            prod_name = cleaned.strip().title() or "New Item"
+
+            unit = "kg"
+            if "litre" in lower or "லிட்டர்" in lower:
+                unit = "litre"
+            elif "packet" in lower or "பாக்கெட்" in lower:
+                unit = "packet"
+
+            return CommandIntent(
+                intent=IntentCategory.CREATE_PRODUCT,
+                language="Tamil" if is_tamil_script else "Tanglish",
+                original_text=raw,
+                normalized_text=f"Register new product {prod_name} at ₹{price_val}/{unit}",
+                entities=CommandEntities(product_name=prod_name, price=price_val, quantity=price_val, unit=unit),
+                confidence=0.96,
+                requires_clarification=False,
+            )
+
+        # -----------------------------------------------------------------
+        # Default / Fallback — Tamil-First, Never Generic "I could not understand"
+        # -----------------------------------------------------------------
+        if is_tamil_script:
+            fallback_q = "மன்னிக்கவும், எந்தப் பொருளைப் பற்றி சொல்கிறீர்கள்?"
+        elif lower.isascii() and not any(k in lower for k in ["pannu", "podu", "evlo", "seri", "aama", "kodu"]):
+            fallback_q = "Sorry, which product are you referring to?"
+        else:
+            fallback_q = "மன்னிக்கவும், எந்தப் பொருளைப் பற்றி சொல்கிறீர்கள்?"
+
         return CommandIntent(
             intent=IntentCategory.UNKNOWN,
-            language="Tanglish",
+            language="Tamil" if is_tamil_script else "Tanglish",
             original_text=raw,
-            normalized_text="Unrecognized command",
+            normalized_text="Query requiring clarification",
             entities=CommandEntities(),
-            confidence=0.5,
+            confidence=0.6,
             requires_clarification=True,
-            clarification_question="I could not understand that command. Please specify if you want to add stock, record a sale, or check inventory.",
+            clarification_question=fallback_q,
         )
 
 

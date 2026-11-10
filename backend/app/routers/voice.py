@@ -1,5 +1,7 @@
 """Voice Assistant Router: Gnani Prisma STT, Timbre TTS, and Voice Pipeline Endpoints."""
 import io
+import json
+import logging
 import re
 from typing import Optional
 from fastapi import APIRouter, Depends, UploadFile, File, Form, Response, Request, HTTPException, status
@@ -17,8 +19,19 @@ from backend.app.schemas.voice import (
 from backend.app.services.gnani_stt_service import gnani_stt_service
 from backend.app.services.gnani_tts_service import gnani_tts_service
 from backend.app.services.voice_service import voice_service
+from backend.app.services.gnani_usage_tracker import usage_tracker
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/voice", tags=["Voice Assistant Engine (Gnani + Gemini)"])
+
+
+@router.get("/usage")
+def get_voice_api_usage(db: Session = Depends(get_db)):
+    """
+    Get audit summary of Gnani API credit usage and testing budget status.
+    """
+    return usage_tracker.get_summary(db=db)
 
 
 @router.get("/status", response_model=VoiceStatusResponse)
@@ -77,6 +90,8 @@ async def process_full_voice_command(
     transcript: Optional[str] = Form(None, description="Optional text transcript if already transcribed"),
     transcript_text: Optional[str] = Form(None, description="Optional text transcript alias"),
     language: str = Form("ta-IN", description="Language identifier"),
+    session_id: Optional[str] = Form(None, description="Conversation session id"),
+    context_json: Optional[str] = Form(None, description="Serialized conversation context"),
     db: Session = Depends(get_db)
 ):
     """
@@ -92,13 +107,22 @@ async def process_full_voice_command(
     content_type = upload.content_type if upload else "audio/wav"
     text = transcript or transcript_text
 
+    client_context = None
+    if context_json:
+        try:
+            client_context = json.loads(context_json)
+        except Exception:
+            pass
+
     return await voice_service.process_voice_command(
         db=db,
         audio_bytes=audio_bytes,
         transcript_text=text,
         filename=filename,
         content_type=content_type,
-        language=language
+        language=language,
+        session_id=session_id,
+        context=client_context,
     )
 
 
@@ -108,12 +132,21 @@ async def synthesize_assistant_speech(request: SpeakRequest):
     Synthesize assistant text responses into human-like Tamil speech using Gnani Timbre v2.5.
     Returns a binary audio/wav stream playable directly in the browser.
     """
-    audio_bytes, media_type, provider = await gnani_tts_service.synthesize_speech(
-        text=request.text,
-        language=request.language,
-        speed=request.speed,
-        voice=request.voice
-    )
+    try:
+        audio_bytes, media_type, provider = await gnani_tts_service.synthesize_speech(
+            text=request.text,
+            language=request.language,
+            speed=request.speed,
+            voice=request.voice
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.warning("Gnani Timbre TTS failed (%s).", e)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Gnani Timbre TTS error: {str(e)}"
+        )
 
     headers = {
         "Content-Disposition": "inline; filename=speech_response.wav",
@@ -134,9 +167,10 @@ async def process_voice_legacy(
     request: Request,
     audio: Optional[UploadFile] = File(None),
     transcript: Optional[str] = Form(None),
-    language: str = Form("ta")
+    language: str = Form("ta-IN"),
+    db: Session = Depends(get_db)
 ):
-    """Legacy voice endpoint maintained for backwards compatibility with form or JSON."""
+    """Legacy voice endpoint routed to real production voice service."""
     raw_transcript = ""
     content_type = request.headers.get("content-type", "")
 
@@ -149,29 +183,34 @@ async def process_voice_legacy(
     else:
         raw_transcript = transcript or ""
 
-    if not raw_transcript:
-        raw_transcript = "Innaiku 5 kilo rice stock add pannunga."
+    audio_bytes = await audio.read() if audio else None
 
-    if audio:
-        await audio.read()
+    # Delegate to real voice pipeline
+    res = await voice_service.process_voice_command(
+        db=db,
+        audio_bytes=audio_bytes,
+        transcript_text=raw_transcript if raw_transcript else None,
+        language=language,
+    )
 
-    # Simple heuristic fallback
-    qty_match = re.search(r"(\d+(\.\d+)?)", raw_transcript)
-    qty = float(qty_match.group(1)) if qty_match else 5.0
-    action = "Add Stock" if "add" in raw_transcript.lower() else "Record Sale"
+    action_label = "Add Stock" if res.intent.intent.value == "ADD_STOCK" else ("Record Sale" if res.intent.intent.value == "SELL_PRODUCT" else res.intent.intent.value)
+    prod_name = res.resolved_product.name if res.resolved_product else (res.intent.entities.product_name or "General Kirana Item")
+    prod_ta = (res.resolved_product.name_ta if res.resolved_product and res.resolved_product.name_ta else None) or (res.intent.entities.product_name or "கிரானா பொருள்")
+    qty = res.intent.entities.quantity or 1.0
+    unit = res.intent.entities.unit or (res.resolved_product.unit if res.resolved_product else "kg")
 
     return VoiceProcessResponse(
-        success=True,
-        transcript=raw_transcript,
-        action=action,
-        action_ta="சரக்கு சேர்க்க" if action == "Add Stock" else "விற்பனை பதிவு",
-        product="Ponni Boiled Rice",
-        product_ta="பொன்னி அரிசி",
+        success=res.success,
+        transcript=res.transcript,
+        action=action_label,
+        action_ta="சரக்கு சேர்க்க" if "Add" in action_label else "விற்பனை பதிவு",
+        product=prod_name,
+        product_ta=prod_ta,
         quantity=qty,
-        unit="kg",
-        confidence=0.98,
-        requires_confirmation=True,
-        response_ta="சரி! சரக்கு சேர்க்க தயார்.",
-        response_tanglish="Seri! Stock add panna ready.",
-        response_en="Ready to add stock."
+        unit=unit,
+        confidence=res.intent.confidence,
+        requires_confirmation=res.requires_confirmation,
+        response_ta=res.message_ta or res.message,
+        response_tanglish=res.message,
+        response_en=res.message
     )
