@@ -22,7 +22,9 @@ def check_health(db: Session = Depends(get_db)):
         "status": "healthy" if db_status == "connected" else "degraded",
         "service": settings.PROJECT_NAME,
         "version": settings.VERSION,
+        "environment": settings.ENVIRONMENT,
         "database": db_status,
+        "database_type": "postgresql" if settings.is_postgres else "sqlite",
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "timezone": settings.TIMEZONE,
     }

@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: tamilvoice-kirana-api
+    runtime: python
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GNANI_API_KEY
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: TIMEZONE
+        value: Asia/Kolkata

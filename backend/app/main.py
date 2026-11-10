@@ -48,6 +48,11 @@ cors_list = [
     "http://localhost:5500",
     "http://127.0.0.1:5500",
 ]
+if settings.FRONTEND_URL and settings.FRONTEND_URL.strip():
+    clean_fe = settings.FRONTEND_URL.strip().rstrip("/")
+    if clean_fe not in cors_list:
+        cors_list.append(clean_fe)
+
 if isinstance(settings.CORS_ORIGINS, list):
     for o in settings.CORS_ORIGINS:
         if o and o not in cors_list and o != "*":
