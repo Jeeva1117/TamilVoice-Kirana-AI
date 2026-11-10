@@ -38,6 +38,14 @@ class Product(Base):
     )
 
     @property
+    def stock(self) -> float:
+        return self.quantity
+
+    @stock.setter
+    def stock(self, value: float) -> None:
+        self.quantity = value
+
+    @property
     def is_low_stock(self) -> bool:
         return 0 < self.quantity <= self.minimum_stock_level
 

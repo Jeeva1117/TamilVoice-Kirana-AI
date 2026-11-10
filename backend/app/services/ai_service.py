@@ -533,8 +533,8 @@ async def interpret_user_command(
     # Turn Handler 2.3: Finalize Conversational Bill ("Bill ready pannu", "Bill podu", "Ellam bill podu")
     # -------------------------------------------------------------------------
     is_finalize_bill = bool(
-        re.search(r"\b(?:bill\s+ready|ready\s+pannu|bill\s+podu|ellam\s+bill|total\s+evlo|bill\s+amount|பில்\s+தயார்|பில்\s+போடு)\b", clean_text)
-    )
+        re.search(r"\b(?:bill\s+ready|ready\s+pannu|bill\s+podu|ellam\s+bill|total\s+evlo|bill\s+amount|bill\s+kaattu|bill\s+kaami|show\s+bill|bill\s+preview|பில்\s+தயார்|பில்\s+போடு|பில்\s+காட்டு)\b", clean_text)
+    ) or (conv.cart_items and clean_text.strip() in ["bill", "bill kaattu", "bill podu", "bill preview", "show bill", "பில்", "பில் காட்டு"])
     if is_finalize_bill and conv.cart_items:
         items_spec = []
         for it in conv.cart_items:
@@ -660,7 +660,7 @@ async def interpret_user_command(
         "sale", "sell", "kuduthuten", "bill", "பில்"
     ])
 
-    if (("customer" in lower_text or "வாடிக்கையாளர்" in lower_text or conv.is_billing_session)
+    if (("customer" in lower_text or "வாடிக்கையாளர்" in lower_text or "bill-la" in lower_text or "bill la" in lower_text or conv.is_billing_session)
         and not is_explicit_stock and not is_explicit_price and not is_bill_finalize):
         
         extracted_cart = extract_kirana_items_from_text(text)
@@ -835,36 +835,81 @@ async def interpret_user_command(
     # -------------------------------------------------------------------------
     # Intent Overrides: Explicit keywords for new product creation or price change
     # -------------------------------------------------------------------------
-    if ("new product" in lower_text or "pudhu product" in lower_text) and intent.intent != IntentCategory.CREATE_PRODUCT:
+    if ("new product" in lower_text or "pudhu product" in lower_text) or intent.intent == IntentCategory.CREATE_PRODUCT:
         intent.intent = IntentCategory.CREATE_PRODUCT
         intent.requires_clarification = False
-        if not intent.entities.product_name:
-            cleaned = lower_text
-            for fw in ["new product", "pudhu product", "add product", "add", "pannunga", "podunga"]:
-                cleaned = re.sub(r"\b" + re.escape(fw) + r"\b", "", cleaned)
-            price_match = re.search(r"(\d+(\.\d+)?)", cleaned)
+        if intent.entities.price is None:
+            price_match = re.search(r"(\d+(\.\d+)?)", lower_text)
             if price_match:
                 intent.entities.price = float(price_match.group(1))
-                cleaned = re.sub(r"(\d+(\.\d+)?)", "", cleaned)
-            for w in ["rupees", "rs", "kilo", "kg", "litre"]:
+        if not intent.entities.product_name or intent.entities.product_name in ["Ponni Boiled Rice", "New Item", "Colgate Toothpaste"]:
+            cleaned = lower_text
+            for fw in ["new product", "pudhu product", "add product", "register product", "add", "pannunga", "podunga", "please"]:
+                cleaned = re.sub(r"\b" + re.escape(fw) + r"\b", "", cleaned)
+            price_match = re.search(r"(\d+(\.\d+)?)", cleaned)
+            if price_match and intent.entities.price is None:
+                intent.entities.price = float(price_match.group(1))
+            cleaned = re.sub(r"(\d+(\.\d+)?)", "", cleaned)
+            for w in ["rupees", "rs", "kilo", "kg", "litre", "price", "cost", "rate", "vila", "vilai", "விலை", "piece"]:
                 cleaned = re.sub(r"\b" + re.escape(w) + r"\b", "", cleaned)
-            intent.entities.product_name = cleaned.strip().title()
+            intent.entities.product_name = cleaned.strip().title() or "New Item"
 
-    if ("price" in lower_text or "விலை" in lower_text) and ("maathu" in lower_text or "update" in lower_text or "change" in lower_text) and intent.intent != IntentCategory.UPDATE_PRICE:
+    if (
+        (("price" in lower_text or "விலை" in lower_text) and any(w in lower_text for w in ["maathu", "mathu", "update", "change", "set pannu", "maathunga"]))
+        or intent.intent == IntentCategory.UPDATE_PRICE
+    ) and intent.intent != IntentCategory.CREATE_PRODUCT and not any(kw in lower_text for kw in ["new product", "pudhu product", "add product"]):
         intent.intent = IntentCategory.UPDATE_PRICE
         intent.requires_clarification = False
-        price_match = re.search(r"(\d+(\.\d+)?)", lower_text)
-        if price_match:
-            intent.entities.price = float(price_match.group(1))
+        if intent.entities.price is None:
+            price_match = re.search(r"(\d+(\.\d+)?)", lower_text)
+            if price_match:
+                intent.entities.price = float(price_match.group(1))
+        if not intent.entities.product_name or intent.entities.product_name.lower() in ["price", "update"]:
+            cleaned_p = lower_text
+            for fw in ["price", "விலை", "maathu", "mathu", "update", "change", "to", "rate", "cost", "rs", "rupees"]:
+                cleaned_p = re.sub(r"\b" + re.escape(fw) + r"\b", "", cleaned_p)
+            cleaned_p = re.sub(r"(\d+(\.\d+)?)", "", cleaned_p).strip()
+            if cleaned_p:
+                intent.entities.product_name = cleaned_p.title()
 
     # Overrides for stock remove, set, predictive queries, and analytics reports
-    if ("remove" in lower_text or "korainga" in lower_text or "கழி" in lower_text) and any(w in lower_text for w in ["stock", "இருப்பு", "kilo", "kg", "packet"]) and not conv.cart_items and intent.intent != IntentCategory.CANCEL_ACTION:
+    if ("remove" in lower_text or "korainga" in lower_text or "கழி" in lower_text) and not conv.cart_items and intent.intent != IntentCategory.CANCEL_ACTION:
         intent.intent = IntentCategory.REMOVE_STOCK
         intent.requires_clarification = False
+        if not intent.entities.product_name:
+            st, p_found, _ = resolve_product(db, lower_text)
+            if p_found:
+                intent.entities.product_name = p_found.name
+                intent.entities.unit = p_found.unit
+            else:
+                from backend.app.services.providers import _match_product_from_text
+                p_match, u_match, _ = _match_product_from_text(lower_text)
+                if p_match:
+                    intent.entities.product_name = p_match
+                    intent.entities.unit = u_match
+        if not intent.entities.quantity:
+            qty_m = re.search(r"(\d+(\.\d+)?)", lower_text)
+            if qty_m:
+                intent.entities.quantity = float(qty_m.group(1))
 
-    if (any(kw in lower_text for kw in ["stock update", "stock adjust", "stock set", "irukku nu update"]) or ("update" in lower_text and "stock" in lower_text and "price" not in lower_text)) and intent.intent != IntentCategory.SET_STOCK:
+    if (any(kw in lower_text for kw in ["stock update", "stock adjust", "stock set", "set pannu", "irukku nu update"]) or ("update" in lower_text and "stock" in lower_text and "price" not in lower_text)) and intent.intent != IntentCategory.SET_STOCK:
         intent.intent = IntentCategory.SET_STOCK
         intent.requires_clarification = False
+        if not intent.entities.product_name:
+            st, p_found, _ = resolve_product(db, lower_text)
+            if p_found:
+                intent.entities.product_name = p_found.name
+                intent.entities.unit = p_found.unit
+            else:
+                from backend.app.services.providers import _match_product_from_text
+                p_match, u_match, _ = _match_product_from_text(lower_text)
+                if p_match:
+                    intent.entities.product_name = p_match
+                    intent.entities.unit = u_match
+        if not intent.entities.quantity:
+            qty_m = re.search(r"(\d+(\.\d+)?)", lower_text)
+            if qty_m:
+                intent.entities.quantity = float(qty_m.group(1))
 
     has_specific_product = bool(getattr(intent.entities, "product_name", None))
     if not has_specific_product and getattr(intent.entities, "items", None):

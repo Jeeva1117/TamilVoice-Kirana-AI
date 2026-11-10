@@ -114,7 +114,7 @@ def _match_product_from_text(lower_text: str) -> Tuple[Optional[str], str, Optio
     """Helper to resolve Kirana catalog product, default unit, and Tamil display name."""
     if "gold winner" in lower_text or "goldwinner" in lower_text:
         return "Gold Winner Oil", "litre", "சூரியகாந்தி எண்ணெய்"
-    if "oil" in lower_text or "எண்ணெய்" in lower_text:
+    if re.search(r"\boil\b", lower_text) or "எண்ணெய்" in lower_text:
         return "Gold Winner Oil", "litre", "சூரியகாந்தி எண்ணெய்"
     if any(w in lower_text for w in ["wheat", "godhumai", "gothumai", "atta", "கோதுமை"]):
         return "Wheat Flour", "kg", "கோதுமை மாவு"
@@ -311,9 +311,10 @@ class MockIntentProvider(IntentProvider):
             )
 
         # -----------------------------------------------------------------
-        # Pattern 0D: Contextual Relative Reduction ("Adhula 2 kilo remove pannunga", "2 kilo kammi pannunga")
+        # Pattern 0D: Contextual Relative Reduction ("Adhula 2 kilo remove pannunga", "Adhula 2 kilo kammi pannunga")
+        # Only matches explicit pronoun references ("adhula", "athula", "adula", "அதுல", "அதில்")
         # -----------------------------------------------------------------
-        if ("adhula" in lower or "remove" in lower or "korainga" in lower or "eduthukonga" in lower) and not ("low stock" in lower or "stock evlo" in lower):
+        if any(w in lower for w in ["adhula", "athula", "adula", "அதுல", "அதில்", "adhil"]) and not ("low stock" in lower or "stock evlo" in lower):
             qty_match = re.search(r"(\d+(\.\d+)?)", lower)
             qty = float(qty_match.group(1)) if qty_match else 2.0
             unit = "kg"
@@ -357,6 +358,52 @@ class MockIntentProvider(IntentProvider):
                 ),
                 confidence=0.98,
                 requires_clarification=False,
+            )
+
+        # -----------------------------------------------------------------
+        # Pattern 1B: CREATE_PRODUCT (Voice registration of new shop items)
+        # -----------------------------------------------------------------
+        if any(kw in lower for kw in ["new product", "pudhu product", "add product", "புது பொருள்", "register product"]):
+            cleaned = lower
+            for fw in ["new product", "pudhu product", "add product", "register product", "add", "pannunga", "podunga", "please", "price", "விலை", "rate", "cost"]:
+                cleaned = re.sub(r"\b" + re.escape(fw) + r"\b", "", cleaned)
+            price_match = re.search(r"(\d+(\.\d+)?)", lower)
+            price_val = float(price_match.group(1)) if price_match else 50.0
+            cleaned = re.sub(r"(\d+(\.\d+)?)", "", cleaned)
+            for w in ["rupees", "rs", "kilo", "kg", "litre", "per", "piece", "packet", "பாக்கெட்", "ரூபாய்"]:
+                cleaned = re.sub(r"\b" + re.escape(w) + r"\b", "", cleaned)
+            prod_name = cleaned.strip().title() or "New Item"
+
+            unit = "piece" if any(w in lower for w in ["toothpaste", "brush", "soap", "pen", "notebook"]) else ("litre" if "litre" in lower else "kg")
+
+            return CommandIntent(
+                intent=IntentCategory.CREATE_PRODUCT,
+                language="Tamil" if is_tamil_script else "Tanglish",
+                original_text=raw,
+                normalized_text=f"Register new product {prod_name} at ₹{price_val}/{unit}",
+                entities=CommandEntities(product_name=prod_name, price=price_val, quantity=price_val, unit=unit),
+                confidence=0.98,
+                requires_clarification=False,
+            )
+
+        # -----------------------------------------------------------------
+        # Pattern 1C: UPDATE_PRICE (Voice selling price adjustment)
+        # -----------------------------------------------------------------
+        if ("price" in lower or "rate" in lower or "vilai" in lower or "விலை" in lower) and any(w in lower for w in ["maathu", "mathu", "update", "change", "set pannu", "maathunga"]) and not any(kw in lower for kw in ["check", "evlo", "எவ்வளவு", "new product", "pudhu product", "add product", "register product", "புது பொருள்"]):
+            prod, def_unit, prod_ta = _match_product_from_text(lower)
+            prod = prod or "Ponni Boiled Rice"
+            price_match = re.search(r"(\d+(\.\d+)?)", lower)
+            price_val = float(price_match.group(1)) if price_match else None
+
+            return CommandIntent(
+                intent=IntentCategory.UPDATE_PRICE,
+                language="Tamil" if is_tamil_script else "Tanglish",
+                original_text=raw,
+                normalized_text=f"Update selling price for {prod} to ₹{price_val}",
+                entities=CommandEntities(product_name=prod, price=price_val, quantity=price_val),
+                confidence=0.97,
+                requires_clarification=False if price_val else True,
+                clarification_question=None if price_val else (f"{prod_ta or prod} விலை எவ்வளவு ரூபாய்?" if is_tamil_script else f"{prod} selling price evlo rupees?"),
             )
 
         # -----------------------------------------------------------------
@@ -429,7 +476,7 @@ class MockIntentProvider(IntentProvider):
 
         # -----------------------------------------------------------------
         # Pattern 4: CHECK_STOCK (Read-only stock inquiry in Tamil, Tanglish, or English)
-        # "அரிசி stock எவ்வளவு?", "Rice stock evlo irukku?", "How much rice stock do we have?", "How many honey bottles do we have in stock?"
+        # "அரிசி stock எவ்வளவு?", "Rice stock evlo irukku?", "How much rice stock do we have?", "Sugar vila evlo?"
         # -----------------------------------------------------------------
         is_check_stock = (
             any(w in lower for w in [
@@ -437,7 +484,7 @@ class MockIntentProvider(IntentProvider):
                 "how much", "how many", "do we have", "in stock", "stock evlo",
                 "stock எவ்வளவு", "stock இல்லையா", "stock இருக்கா", "இருப்பு",
                 "stock details", "current stock", "stock quantity", "available stock",
-                "have in stock"
+                "have in stock", "vila evlo", "vilai evlo", "விலை எவ்வளவு", "price evlo", "rate evlo"
             ])
             and "sales" not in lower
             and not ("add" in lower or "சேர்க்க" in lower or "சேரு" in lower or "vandhirukku" in lower or "bill" in lower or "sale" in lower)
@@ -456,9 +503,26 @@ class MockIntentProvider(IntentProvider):
 
         # -----------------------------------------------------------------
         # Pattern 5: ADD_STOCK
-        # "இன்னைக்கு rice add பண்ணு", "10 kilo godhumai maavu stock add pannunga", "அரை கிலோ tomato add பண்ணு"
+        # "ரெண்டு கிலோ அரிசி ஸ்டாக் சேர்த்திடு", "10 kilo godhumai maavu stock add pannunga", "Add 5 kg rice to inventory"
         # -----------------------------------------------------------------
-        if ("add" in lower or "சேர்க்க" in lower or "சேரு" in lower or "vandhirukku" in lower or "received" in lower or ("stock" in lower and not ("check" in lower or "evlo" in lower or "sales" in lower or "kammi" in lower or "low" in lower or "report" in lower or "best" in lower or "ethana" in lower or "sollu" in lower or "இல்லையா" in lower or "இருக்கா" in lower or "எவ்வளவு" in lower))):
+        is_add_stock = (
+            "add" in lower
+            or "சேர்க்க" in lower
+            or "சேர்த்திடு" in lower
+            or "சேர்த்து" in lower
+            or "சேர்" in lower
+            or "vandhirukku" in lower
+            or "received" in lower
+            or (
+                ("stock" in lower or "ஸ்டாக்" in lower)
+                and not any(k in lower for k in [
+                    "check", "evlo", "sales", "kammi", "low", "report", "best",
+                    "top", "ethana", "sollu", "இல்லையா", "இருக்கா", "எவ்வளவு",
+                    "remove", "korainga", "கழி", "set", "adjust", "update", "value"
+                ])
+            )
+        )
+        if is_add_stock and not any(kw in lower for kw in ["new product", "pudhu product", "remove", "korainga"]):
             prod = prod or "Ponni Boiled Rice"
 
             qty_match = re.search(r"(\d+(\.\d+)?)", lower)
@@ -489,9 +553,9 @@ class MockIntentProvider(IntentProvider):
 
         # -----------------------------------------------------------------
         # Pattern 5B: REMOVE_STOCK
-        # "2 kilo rice stock remove pannu", "5 kilo sugar remove pannu", "கழி"
+        # "Rice 5 kilo remove pannu", "Sugar 5 kilo remove pannu", "Remove 2 kg rice", "கழி"
         # -----------------------------------------------------------------
-        if ("remove" in lower or "korainga" in lower or "கழி" in lower) and ("stock" in lower or "இருப்பு" in lower or "சரக்கு" in lower or "kilo" in lower or "kg" in lower or "packet" in lower):
+        if ("remove" in lower or "korainga" in lower or "கழி" in lower) and not ("cancel" in lower or "ரத்து" in lower):
             prod = prod or "Ponni Boiled Rice"
             qty_match = re.search(r"(\d+(\.\d+)?)", lower)
             qty = float(qty_match.group(1)) if qty_match else 1.0
@@ -508,9 +572,9 @@ class MockIntentProvider(IntentProvider):
 
         # -----------------------------------------------------------------
         # Pattern 5C: SET_STOCK (Adjust verified physical stock)
-        # "Onion stock 50 kilo irukku nu update pannu", "Set tomato stock to 20 kg"
+        # "Rice stock 50 kg set pannu", "Set tomato stock to 20 kg"
         # -----------------------------------------------------------------
-        if ("stock" in lower) and ("update" in lower or "adjust" in lower or "set" in lower or "irukku nu update" in lower) and not ("price" in lower or "rate" in lower or "vilai" in lower or "விலை" in lower):
+        if ("set" in lower or "adjust" in lower or "update" in lower or "irukku nu update" in lower) and ("stock" in lower or "இருப்பு" in lower) and not ("price" in lower or "rate" in lower or "vilai" in lower or "விலை" in lower):
             prod = prod or "Ponni Boiled Rice"
             qty_match = re.search(r"(\d+(\.\d+)?)", lower)
             qty = float(qty_match.group(1)) if qty_match else 10.0

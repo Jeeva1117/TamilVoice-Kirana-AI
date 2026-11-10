@@ -139,13 +139,14 @@ async def synthesize_assistant_speech(request: SpeakRequest):
             speed=request.speed,
             voice=request.voice
         )
-    except HTTPException:
-        raise
     except Exception as e:
-        logger.warning("Gnani Timbre TTS failed (%s).", e)
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Gnani Timbre TTS error: {str(e)}"
+        logger.warning("Gnani Timbre TTS failed (%s), providing fallback audio response.", e)
+        from backend.app.services.providers import _mock_tts
+        audio_bytes, media_type, provider = await _mock_tts.synthesize(
+            text=request.text,
+            language=request.language,
+            speed=request.speed,
+            voice=request.voice
         )
 
     headers = {
