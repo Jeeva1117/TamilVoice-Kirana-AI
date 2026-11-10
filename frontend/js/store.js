@@ -2,8 +2,10 @@
  * TamilVoice Kirana AI - Shared Data Store
  * Centralized state management for inventory, sales transactions, and stock movements.
  * Synchronizes across Dashboard, Inventory, Sales, and Voice Assistant.
- * Persists demo state in localStorage with safe initialization and reset capabilities.
+ * Persists state in localStorage with live SQLite backend synchronization.
  */
+
+import { API_CONFIG } from './api.js';
 
 export const Store = {
   STORAGE_KEYS: {
@@ -12,234 +14,102 @@ export const Store = {
     MOVEMENTS: 'tv_kirana_movements_v1'
   },
 
-  // Initial Seed Data (Realistic Tamil Nadu Kirana Store)
-  defaultProducts: [
-    {
-      id: 1,
-      sku: 'SKU-GRN-001',
-      name_en: 'Ponni Boiled Rice',
-      name_ta: 'பொன்னி புழுங்கல் அரிசி',
-      category: 'Grains',
-      stock: 45,
-      min_stock: 15,
-      unit: 'kg',
-      purchase_price: 48,
-      selling_price: 58,
-      description: 'First quality Thanjavur Ponni boiled rice.'
-    },
-    {
-      id: 2,
-      sku: 'SKU-GRN-002',
-      name_en: 'Wheat Flour (Atta)',
-      name_ta: 'கோதுமை மாவு (ஆட்டா)',
-      category: 'Grains',
-      stock: 20,
-      min_stock: 10,
-      unit: 'kg',
-      purchase_price: 42,
-      selling_price: 52,
-      description: '100% whole wheat stone-ground chakki fresh atta.'
-    },
-    {
-      id: 3,
-      sku: 'SKU-OIL-001',
-      name_en: 'Sunflower Oil (Gold Winner)',
-      name_ta: 'சூரியகாந்தி எண்ணெய்',
-      category: 'Oils',
-      stock: 12,
-      min_stock: 15,
-      unit: 'litre',
-      purchase_price: 120,
-      selling_price: 140,
-      description: 'Refined sunflower cooking oil pouch.'
-    },
-    {
-      id: 4,
-      sku: 'SKU-GRO-001',
-      name_en: 'White Crystal Sugar',
-      name_ta: 'வெள்ளை சீனி',
-      category: 'Grocery',
-      stock: 30,
-      min_stock: 15,
-      unit: 'kg',
-      purchase_price: 38,
-      selling_price: 44,
-      description: 'Pure refined sulphurless white sugar.'
-    },
-    {
-      id: 5,
-      sku: 'SKU-PUL-001',
-      name_en: 'Premium Toor Dal',
-      name_ta: 'முதல் தர துவரம் பருப்பு',
-      category: 'Pulses',
-      stock: 8,
-      min_stock: 12,
-      unit: 'kg',
-      purchase_price: 135,
-      selling_price: 155,
-      description: 'Polished desi toor dal for sambar and dal.'
-    },
-    {
-      id: 6,
-      sku: 'SKU-DAI-001',
-      name_en: 'Fresh Toned Milk',
-      name_ta: 'பசும்பால்',
-      category: 'Dairy',
-      stock: 5,
-      min_stock: 10,
-      unit: 'litre',
-      purchase_price: 24,
-      selling_price: 30,
-      description: 'Pasteurized homogenized toned pouch milk.'
-    },
-    {
-      id: 7,
-      sku: 'SKU-BEV-001',
-      name_en: '3 Roses Tea Powder',
-      name_ta: '3 ரோஸஸ் டீ தூள்',
-      category: 'Beverages',
-      stock: 15,
-      min_stock: 8,
-      unit: 'packet',
-      purchase_price: 65,
-      selling_price: 78,
-      description: '250g strong blend CTC black tea packet.'
-    },
-    {
-      id: 8,
-      sku: 'SKU-GRO-002',
-      name_en: 'Tata Iodized Salt',
-      name_ta: 'டாடா அயோடின் உப்பு',
-      category: 'Grocery',
-      stock: 25,
-      min_stock: 10,
-      unit: 'kg',
-      purchase_price: 20,
-      selling_price: 26,
-      description: 'Vacuum evaporated iodized crystal salt.'
-    },
-    {
-      id: 9,
-      sku: 'SKU-SPI-001',
-      name_en: 'Aachi Chilli Powder 100g',
-      name_ta: 'ஆச்சி மிளகாய் தூள்',
-      category: 'Spices',
-      stock: 6,
-      min_stock: 15,
-      unit: 'packet',
-      purchase_price: 38,
-      selling_price: 48,
-      description: '100g hot red chilli powder packet.'
-    },
-    {
-      id: 10,
-      sku: 'SKU-PUL-002',
-      name_en: 'Urad Dal (White Whole)',
-      name_ta: 'உளுந்தம் பருப்பு (முழு)',
-      category: 'Pulses',
-      stock: 0,
-      min_stock: 10,
-      unit: 'kg',
-      purchase_price: 125,
-      selling_price: 145,
-      description: 'Guntur premium urad dal for idli/dosa batter.'
-    }
-  ],
-
-  defaultSales: [
-    {
-      id: 'KB-1089',
-      date: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
-      product_id: 1,
-      product_name: 'Ponni Boiled Rice',
-      product_name_ta: 'பொன்னி புழுங்கல் அரிசி',
-      quantity: 25,
-      unit: 'kg',
-      unit_price: 58,
-      total_amount: 1450,
-      payment_method: 'UPI',
-      customer_name: 'Murugan Pandian',
-      status: 'Completed',
-      notes: 'Monthly grocery purchase'
-    },
-    {
-      id: 'KB-1088',
-      date: new Date(Date.now() - 35 * 60 * 1000).toISOString(),
-      product_id: 3,
-      product_name: 'Sunflower Oil (Gold Winner)',
-      product_name_ta: 'சூரியகாந்தி எண்ணெய்',
-      quantity: 2,
-      unit: 'litre',
-      unit_price: 140,
-      total_amount: 280,
-      payment_method: 'Cash',
-      customer_name: 'Lakshmi Ammal',
-      status: 'Completed',
-      notes: 'Counter sale'
-    },
-    {
-      id: 'KB-1087',
-      date: new Date(Date.now() - 75 * 60 * 1000).toISOString(),
-      product_id: 9,
-      product_name: 'Aachi Chilli Powder 100g',
-      product_name_ta: 'ஆச்சி மிளகாய் தூள்',
-      quantity: 2,
-      unit: 'packet',
-      unit_price: 48,
-      total_amount: 96,
-      payment_method: 'Cash',
-      customer_name: 'Walk-in Customer',
-      status: 'Completed',
-      notes: ''
-    },
-    {
-      id: 'KB-1086',
-      date: new Date(Date.now() - 130 * 60 * 1000).toISOString(),
-      product_id: 4,
-      product_name: 'White Crystal Sugar',
-      product_name_ta: 'வெள்ளை சீனி',
-      quantity: 5,
-      unit: 'kg',
-      unit_price: 44,
-      total_amount: 220,
-      payment_method: 'UPI',
-      customer_name: 'Senthil Kumar',
-      status: 'Completed',
-      notes: 'Festival sweets preparation'
-    },
-    {
-      id: 'KB-1085',
-      date: new Date(Date.now() - 210 * 60 * 1000).toISOString(),
-      product_id: 2,
-      product_name: 'Wheat Flour (Atta)',
-      product_name_ta: 'கோதுமை மாவு (ஆட்டா)',
-      quantity: 5,
-      unit: 'kg',
-      unit_price: 52,
-      total_amount: 260,
-      payment_method: 'Card',
-      customer_name: 'Anitha Ramesh',
-      status: 'Completed',
-      notes: ''
-    }
-  ],
-
-  defaultMovements: [
-    { id: 1, product_id: 1, type: 'Initial Stock', quantity: 70, unit: 'kg', date: new Date(Date.now() - 86400000 * 2).toISOString(), reason: 'Distributor delivery' },
-    { id: 2, product_id: 1, type: 'Sale', quantity: -25, unit: 'kg', date: new Date(Date.now() - 10 * 60 * 1000).toISOString(), reason: 'Invoice KB-1089' },
-    { id: 3, product_id: 3, type: 'Initial Stock', quantity: 14, unit: 'litre', date: new Date(Date.now() - 86400000 * 2).toISOString(), reason: 'Stock intake' },
-    { id: 4, product_id: 3, type: 'Sale', quantity: -2, unit: 'litre', date: new Date(Date.now() - 35 * 60 * 1000).toISOString(), reason: 'Invoice KB-1088' }
-  ],
+  // Clean Initial State: Real shopkeeper catalog starts empty
+  defaultProducts: [],
+  defaultSales: [],
+  defaultMovements: [],
 
   init() {
+    // One-time purge of legacy demo seed items from local storage
+    if (!localStorage.getItem('tv_purged_shopkeeper_data_v2')) {
+      localStorage.removeItem(this.STORAGE_KEYS.INVENTORY);
+      localStorage.removeItem(this.STORAGE_KEYS.SALES);
+      localStorage.removeItem(this.STORAGE_KEYS.MOVEMENTS);
+      localStorage.removeItem('tv_voice_history');
+      localStorage.setItem('tv_purged_shopkeeper_data_v2', 'true');
+    }
+
     if (!localStorage.getItem(this.STORAGE_KEYS.INVENTORY)) {
-      this.saveProducts(this.defaultProducts);
+      this.saveProducts([]);
     }
     if (!localStorage.getItem(this.STORAGE_KEYS.SALES)) {
-      this.saveSales(this.defaultSales);
+      this.saveSales([]);
     }
     if (!localStorage.getItem(this.STORAGE_KEYS.MOVEMENTS)) {
-      this.saveMovements(this.defaultMovements);
+      this.saveMovements([]);
+    }
+    this.syncFromBackend();
+    this.syncSalesFromBackend();
+  },
+
+  async syncFromBackend() {
+    try {
+      const res = await fetch(`${API_CONFIG.BASE_URL}/inventory?limit=100`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.items && Array.isArray(data.items)) {
+          const mapped = data.items.map(p => ({
+            id: p.id,
+            sku: p.sku,
+            name_en: p.name,
+            name_ta: p.name_ta || p.name,
+            category: p.category,
+            stock: p.quantity,
+            min_stock: p.minimum_stock_level,
+            unit: p.unit,
+            purchase_price: p.purchase_price,
+            selling_price: p.selling_price,
+            description: p.description || '',
+            is_low_stock: p.is_low_stock,
+            is_out_of_stock: p.is_out_of_stock,
+            status: p.stock_status === 'out_of_stock' ? 'Out of Stock' : (p.stock_status === 'low_stock' ? 'Low Stock' : 'In Stock')
+          }));
+          this.saveProducts(mapped);
+          this.notify('inventory');
+        }
+      }
+    } catch (e) {
+      console.warn('[Store] syncFromBackend notice:', e.message);
+    }
+  },
+
+  async syncSalesFromBackend() {
+    try {
+      const res = await fetch(`${API_CONFIG.BASE_URL}/sales?limit=100`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.items && Array.isArray(data.items)) {
+          const mapped = data.items.map(s => {
+            const hasItems = s.items && s.items.length > 0;
+            const itemLines = hasItems ? s.items.map(it => `${it.product_name_snapshot} (${it.quantity} ${it.unit || ''})`).join(', ') : (s.notes || 'Counter Sale');
+            const totalQty = hasItems ? s.items.reduce((acc, it) => acc + (it.quantity || 0), 0) : 1;
+            const prodName = hasItems ? (s.items.length > 1 ? `${s.items[0].product_name_snapshot} + ${s.items.length - 1} more` : s.items[0].product_name_snapshot) : 'Sale';
+
+            return {
+              id: s.transaction_id || `TX-${s.id}`,
+              date: s.created_at,
+              items: s.items || [],
+              items_summary: itemLines,
+              total_items: hasItems ? s.items.length : 1,
+              product_id: hasItems ? s.items[0].product_id : null,
+              product_name: prodName,
+              product_name_ta: '',
+              quantity: totalQty,
+              unit: hasItems && s.items.length === 1 ? s.items[0].unit : 'items',
+              unit_price: hasItems && s.items.length === 1 ? s.items[0].unit_price : s.total_amount,
+              total_amount: s.total_amount,
+              payment_method: s.payment_method,
+              customer_name: s.customer_name || 'Walk-in Counter',
+              status: s.status,
+              notes: s.notes || ''
+            };
+          });
+          this.saveSales(mapped);
+          this.notify('sales');
+        }
+      }
+    } catch (e) {
+      console.warn('[Store] syncSalesFromBackend notice:', e.message);
     }
   },
 
@@ -257,8 +127,16 @@ export const Store = {
   },
 
   getProductById(id) {
+    if (id === null || id === undefined) return null;
     const products = this.getProducts();
-    return products.find(p => Number(p.id) === Number(id)) || null;
+    const idStr = String(id).trim();
+    const idNum = Number(id);
+    return products.find(p => 
+      (!isNaN(idNum) && Number(p.id) === idNum) ||
+      String(p.id) === idStr ||
+      (p.sku && p.sku.toLowerCase() === idStr.toLowerCase()) ||
+      (p.name_en && p.name_en.toLowerCase() === idStr.toLowerCase())
+    ) || null;
   },
 
   saveProducts(products) {

@@ -41,8 +41,8 @@ export const Navigation = {
       this.sidebarOverlay.addEventListener('click', () => this.closeMobileSidebar());
     }
 
-    // Navigation Links Click Handling
-    this.navLinks.forEach(link => {
+    // Navigation Links & Elements with [data-view] Click Handling
+    document.querySelectorAll('[data-view]').forEach(link => {
       link.addEventListener('click', (e) => {
         e.preventDefault();
         const targetView = link.getAttribute('data-view');
@@ -162,7 +162,8 @@ export const Navigation = {
       dashboard: { en: 'Dashboard Overview', ta: 'கடையின் சுருக்கம்' },
       voice: { en: 'Tamil Voice Assistant', ta: 'தமிழ் வாய்ஸ் அசிஸ்டண்ட்' },
       inventory: { en: 'Inventory Management', ta: 'சரக்கு இருப்பு மேலாண்மை' },
-      sales: { en: 'Sales & Billing Records', ta: 'விற்பனை மற்றும் பில்கள்' },
+      sales: { en: 'Billing Counter', ta: 'பில்லிங் கவுண்டர்' },
+      bills: { en: 'Bill History & Invoices', ta: 'பில் வரலாறு மற்றும் ரசீதுகள்' },
       reports: { en: 'Reports & Analytics', ta: 'வணிக அறிக்கைகள்' },
       customers: { en: 'Customer Khata Ledger', ta: 'வாடிக்கையாளர் கணக்கு' },
       settings: { en: 'Store Settings', ta: 'கடை அமைப்புகள்' },

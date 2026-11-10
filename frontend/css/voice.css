@@ -731,9 +731,443 @@
 }
 
 /* ==========================================================================
+   Live Voice Mode Dedicated Styles
+   ========================================================================== */
+.live-mode-banner {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%);
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  border-radius: var(--radius-xl);
+  padding: var(--space-5) var(--space-6);
+  box-shadow: 0 10px 30px -5px rgba(99, 102, 241, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  position: relative;
+  overflow: hidden;
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+}
+
+.live-mode-banner.active {
+  border-color: rgba(34, 197, 94, 0.6);
+  box-shadow: 0 12px 35px -5px rgba(34, 197, 94, 0.22);
+}
+
+.live-mode-banner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #6366F1, #38BDF8, #22C55E);
+  opacity: 0.8;
+}
+
+.live-mode-banner.active::before {
+  background: linear-gradient(90deg, #22C55E, #10B981, #34D399);
+}
+
+.live-mode-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.live-mode-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+  max-width: 620px;
+}
+
+.live-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-2xs);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  width: fit-content;
+}
+
+.live-status-pill.idle {
+  background: rgba(148, 163, 184, 0.15);
+  color: #94A3B8;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.live-status-pill.listening {
+  background: rgba(34, 197, 94, 0.18);
+  color: #22C55E;
+  border: 1px solid rgba(34, 197, 94, 0.45);
+}
+
+.live-status-pill.understanding {
+  background: rgba(56, 189, 248, 0.18);
+  color: #38BDF8;
+  border: 1px solid rgba(56, 189, 248, 0.45);
+}
+
+.live-status-pill.speaking {
+  background: rgba(168, 85, 247, 0.18);
+  color: #C084FC;
+  border: 1px solid rgba(168, 85, 247, 0.45);
+}
+
+.live-dot-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+  animation: pulse-ring 1.8s infinite;
+}
+
+.live-mode-heading {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: #F8FAFC;
+  margin: 0;
+}
+
+.live-mode-sub {
+  font-size: var(--font-size-xs);
+  color: #94A3B8;
+  margin: 0;
+  line-height: 1.45;
+}
+
+/* Primary Live Toggle CTA Button */
+.btn-live-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2-5);
+  padding: 10px 22px;
+  background: linear-gradient(135deg, #4F46E5 0%, #6366F1 100%);
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 18px rgba(99, 102, 241, 0.4);
+  transition: all 0.25s ease;
+  white-space: nowrap;
+}
+
+.btn-live-toggle:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 22px rgba(99, 102, 241, 0.55);
+  background: linear-gradient(135deg, #4338CA 0%, #4F46E5 100%);
+}
+
+.btn-live-toggle.active {
+  background: linear-gradient(135deg, #DC2626 0%, #EF4444 100%);
+  box-shadow: 0 4px 18px rgba(239, 68, 68, 0.45);
+  animation: live-button-glow 2s infinite ease-in-out;
+}
+
+.btn-live-toggle.active:hover {
+  background: linear-gradient(135deg, #B91C1C 0%, #DC2626 100%);
+  box-shadow: 0 6px 24px rgba(239, 68, 68, 0.6);
+}
+
+@keyframes live-button-glow {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 22px rgba(239, 68, 68, 0.85);
+  }
+}
+
+.live-mic-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 4-Step Flow Indicator */
+.live-flow-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(51, 65, 85, 0.6);
+  border-radius: var(--radius-lg);
+  padding: var(--space-2-5) var(--space-4);
+  overflow-x: auto;
+}
+
+.flow-step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 4px 10px;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: #64748B;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.flow-step .step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(100, 116, 139, 0.25);
+  font-size: 11px;
+  font-weight: 700;
+  color: #94A3B8;
+}
+
+.flow-step.active {
+  background: rgba(99, 102, 241, 0.15);
+  color: #FFFFFF;
+}
+
+.flow-step.active .step-num {
+  background: #6366F1;
+  color: #FFFFFF;
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.6);
+}
+
+.flow-step.listening.active {
+  background: rgba(34, 197, 94, 0.18);
+  color: #22C55E;
+}
+
+.flow-step.listening.active .step-num {
+  background: #22C55E;
+  color: #FFFFFF;
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.8);
+}
+
+.flow-step.understanding.active {
+  background: rgba(56, 189, 248, 0.18);
+  color: #38BDF8;
+}
+
+.flow-step.understanding.active .step-num {
+  background: #38BDF8;
+  color: #0F172A;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.8);
+}
+
+.flow-step.speaking.active {
+  background: rgba(168, 85, 247, 0.18);
+  color: #C084FC;
+}
+
+.flow-step.speaking.active .step-num {
+  background: #A855F7;
+  color: #FFFFFF;
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.8);
+}
+
+.flow-arrow {
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Audio Meter and Action Controls Row */
+.live-controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.live-audio-meter-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2-5);
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(51, 65, 85, 0.6);
+  border-radius: var(--radius-full);
+  padding: 4px 12px;
+}
+
+.meter-label {
+  font-size: var(--font-size-2xs);
+  color: #94A3B8;
+  font-weight: 600;
+}
+
+.live-audio-meter {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 20px;
+  width: 90px;
+  padding: 2px 0;
+}
+
+.live-meter-bar {
+  flex: 1;
+  min-width: 4px;
+  background: linear-gradient(180deg, #22C55E 0%, #10B981 100%);
+  border-radius: 2px;
+  transition: height 0.08s ease;
+}
+
+.live-meter-bar:nth-child(n+8) {
+  background: linear-gradient(180deg, #F59E0B 0%, #EAB308 100%);
+}
+
+.live-meter-bar:nth-child(n+11) {
+  background: linear-gradient(180deg, #EF4444 0%, #DC2626 100%);
+}
+
+.meter-val {
+  font-size: 11px;
+  font-family: var(--font-family-mono, monospace);
+  color: #38BDF8;
+  font-weight: 600;
+  min-width: 30px;
+}
+
+.live-quick-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.live-action-btn {
+  font-size: var(--font-size-xs);
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ==========================================================================
+   Live Multi-Product Invoice / Bill Card
+   ========================================================================== */
+.live-bill-card {
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 41, 59, 0.98) 100%);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  border-radius: var(--radius-xl);
+  padding: var(--space-5) var(--space-6);
+  box-shadow: 0 10px 30px -5px rgba(34, 197, 94, 0.15);
+  margin-bottom: var(--space-4);
+  animation: fadeInDown 0.25s ease-out;
+}
+
+.live-bill-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+  padding-bottom: var(--space-2-5);
+  border-bottom: 1px solid rgba(51, 65, 85, 0.6);
+}
+
+.bill-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2-5);
+  color: #22C55E;
+}
+
+.bill-title {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: #F8FAFC;
+  margin: 0;
+}
+
+.live-bill-summary-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px dashed rgba(51, 65, 85, 0.8);
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.bill-say-hint {
+  font-size: var(--font-size-xs);
+  color: #94A3B8;
+}
+
+.bill-say-hint strong {
+  color: #38BDF8;
+}
+
+.bill-totals {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.bill-total-label {
+  font-size: var(--font-size-xs);
+  color: #94A3B8;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.bill-total-amount {
+  font-size: var(--font-size-xl);
+  font-weight: 800;
+  color: #22C55E;
+  font-family: var(--font-family-mono, monospace);
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ==========================================================================
    Responsive Adaptations
    ========================================================================== */
 @media (max-width: 768px) {
+  .live-mode-top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .btn-live-toggle {
+    width: 100%;
+    justify-content: center;
+  }
+  .live-controls-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .live-audio-meter-wrap {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .live-quick-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .live-action-btn {
+    flex: 1;
+    justify-content: center;
+  }
   .voice-stage-card {
     padding: var(--space-6) var(--space-4);
   }
