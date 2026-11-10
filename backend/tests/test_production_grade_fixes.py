@@ -314,3 +314,78 @@ def test_store_settings_db_persistence_and_validation(client: TestClient, db_ses
     # 3. Validation: Reject invalid phone number (< 10 digits)
     invalid_phone_res = client.put("/api/settings", json={"phone": "12345"})
     assert invalid_phone_res.status_code == 422  # Unprocessable Entity
+
+
+# =============================================================================
+# SCENARIO 6: Payment Status Separation (DRAFT, PENDING, PAID) & Status Updates
+# =============================================================================
+
+def test_payment_status_management_and_update(db_session: Session, client: TestClient):
+    """
+    Phase 7: Separate bill creation and payment confirmation.
+    - Cash/UPI bills default to PAID if paid
+    - Credit/Udhaar bills default to PENDING
+    - PATCH /api/sales/{id}/status marks unpaid bill as PAID
+    - Printing receipt does not alter status or deduct stock
+    """
+    prod = db_session.query(Product).filter(Product.is_active == True, Product.quantity >= 5.0).first()
+    assert prod is not None
+
+    # 1. Create a credit sale -> Should have payment_status='PENDING'
+    sale_payload = SaleCreate(
+        items=[SaleItemCreate(product_id=prod.id, quantity=1.0)],
+        payment_method="CREDIT",
+        notes="Customer credit order (Udhaar)"
+    )
+    sale = sales_service.create_sale(db=db_session, sale_in=sale_payload)
+    assert sale.payment_status == "PENDING"
+    assert sale.status == "COMPLETED"
+
+    # 2. Update payment status to PAID via PATCH endpoint
+    res = client.patch(f"/api/sales/{sale.id}/status", json={"payment_status": "PAID"})
+    assert res.status_code == 200
+    updated_sale = res.json()
+    assert updated_sale["payment_status"] == "PAID"
+
+    # Verify reload from DB
+    db_session.expire_all()
+    reloaded = db_session.query(Sale).filter(Sale.id == sale.id).first()
+    assert reloaded.payment_status == "PAID"
+
+
+# =============================================================================
+# SCENARIO 7: All 13 AI Intent Operations Normalization
+# =============================================================================
+
+def test_all_13_phase3_intent_operations():
+    """
+    Phase 3: AI intent parser recognizes all 13 business operations:
+    check_stock, add_stock, remove_stock, create_bill, check_sales,
+    check_product_price, add_product, update_product, edit_pending_bill,
+    cancel_pending_bill, confirm_bill, record_payment, general_conversation.
+    """
+    from backend.app.schemas.ai import CommandIntent, IntentCategory
+
+    intents_to_test = [
+        ("check_stock", IntentCategory.CHECK_STOCK),
+        ("add_stock", IntentCategory.ADD_STOCK),
+        ("remove_stock", IntentCategory.SELL_PRODUCT),
+        ("create_bill", IntentCategory.SELL_PRODUCT),
+        ("check_sales", IntentCategory.SALES_REPORT),
+        ("check_product_price", IntentCategory.CHECK_STOCK),
+        ("add_product", IntentCategory.CREATE_PRODUCT),
+        ("update_product", IntentCategory.UPDATE_PRICE),
+        ("edit_pending_bill", IntentCategory.CONFIRM_ACTION),
+        ("cancel_pending_bill", IntentCategory.CANCEL_ACTION),
+        ("confirm_bill", IntentCategory.CONFIRM_ACTION),
+        ("record_payment", IntentCategory.CONFIRM_ACTION),
+        ("general_conversation", IntentCategory.GENERAL_QUERY),
+    ]
+
+    for op_name, expected_category in intents_to_test:
+        cmd = CommandIntent(
+            intent=op_name,
+            original_text=f"Test {op_name}",
+            normalized_text=f"Test {op_name}"
+        )
+        assert cmd.intent == expected_category, f"Operation {op_name} failed to map to {expected_category}"

@@ -7,6 +7,7 @@ import { Utils } from './utils.js';
 import { Store } from './store.js';
 import { Navigation } from './navigation.js';
 import { Sales } from './sales.js';
+import { ApiService } from './api.js';
 
 export const Bills = {
   searchQuery: '',
@@ -238,6 +239,8 @@ export const Bills = {
       const itemsText = s.items_summary || (s.product_name ? `${s.product_name} (${s.quantity} ${s.unit})` : 'Counter Sale');
       const totalItems = s.total_items || (s.items ? s.items.length : 1);
       const payClass = (s.payment_method === 'UPI') ? 'blue' : (s.payment_method === 'CASH' ? 'green' : (s.payment_method === 'CARD' ? 'purple' : 'amber'));
+      const payStatus = (s.payment_status || (s.payment_method === 'CREDIT' ? 'PENDING' : 'PAID')).toUpperCase();
+      const statusBadgeClass = (payStatus === 'PAID') ? 'success' : (payStatus === 'PENDING' ? 'warning' : 'danger');
 
       return `
         <tr>
@@ -252,9 +255,15 @@ export const Bills = {
           <td><span class="badge-pill neutral" style="font-size: 0.75rem;">${totalItems} ${totalItems === 1 ? 'item' : 'items'}</span></td>
           <td><strong class="text-success" style="font-size: 1rem;">${amtFmt}</strong></td>
           <td><span class="badge-pill ${payClass}" style="font-size: 0.75rem;">${s.payment_method || 'CASH'}</span></td>
-          <td><span class="badge-pill success" style="font-size: 0.75rem;">Completed</span></td>
+          <td><span class="badge-pill ${statusBadgeClass}" style="font-size: 0.75rem;">${payStatus}</span></td>
           <td style="text-align: right; white-space: nowrap;">
             <div style="display: flex; gap: 0.4rem; justify-content: flex-end;">
+              ${payStatus === 'PENDING' ? `
+                <button class="btn btn-outline btn-xs btn-bill-pay text-success" data-bill-id="${s.id}" data-db-id="${s.db_id || s.id}" title="Mark Payment as Received">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span>Pay</span>
+                </button>
+              ` : ''}
               <button class="btn btn-outline btn-xs btn-bill-view" data-bill-id="${s.id}" title="View Complete Itemized Bill">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
                 <span>View</span>
@@ -270,6 +279,23 @@ export const Bills = {
     }).join('');
 
     // Bind action buttons
+    this.tableBody.querySelectorAll('.btn-bill-pay').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-bill-id');
+        const dbId = btn.getAttribute('data-db-id') || id;
+        try {
+          await ApiService.updateSaleStatus(dbId, { payment_status: 'PAID' });
+          const sale = Store.getSaleById(id);
+          if (sale) sale.payment_status = 'PAID';
+          Store.saveSales();
+          Utils.showToast('success', 'Payment Received', `Bill ${id} marked as PAID.`);
+          this.render();
+        } catch (e) {
+          Utils.showToast('error', 'Update Failed', e.message || 'Could not update payment status.');
+        }
+      });
+    });
+
     this.tableBody.querySelectorAll('.btn-bill-view').forEach(btn => {
       btn.addEventListener('click', () => {
         const id = btn.getAttribute('data-bill-id');

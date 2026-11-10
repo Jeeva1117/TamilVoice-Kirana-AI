@@ -14,6 +14,7 @@ class Sale(Base):
     total_amount = Column(Float, nullable=False, default=0.0)
     payment_method = Column(String(30), nullable=False, default="CASH")  # CASH, UPI, CREDIT, CARD
     status = Column(String(30), nullable=False, default="COMPLETED")  # COMPLETED, CANCELLED, REFUNDED
+    payment_status = Column(String(30), nullable=False, default="PAID")  # PENDING, PAID, PARTIALLY_PAID, CANCELLED
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
 

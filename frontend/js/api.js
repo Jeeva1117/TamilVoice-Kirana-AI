@@ -226,6 +226,13 @@ export class ApiService {
     });
   }
 
+  static async updateSaleStatus(saleId, statusData) {
+    return this.request(`/sales/${saleId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify(statusData),
+    });
+  }
+
   /* =========================================================================
      Customers Endpoints
      ========================================================================= */

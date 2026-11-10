@@ -12,9 +12,16 @@ class SaleItemCreate(BaseModel):
 class SaleCreate(BaseModel):
     items: List[SaleItemCreate] = Field(..., min_length=1, description="List of items in sale")
     payment_method: str = Field("CASH", description="CASH, UPI, CREDIT, CARD")
+    payment_status: Optional[str] = Field("PAID", description="PENDING, PAID, PARTIALLY_PAID, CANCELLED")
     customer_id: Optional[int] = Field(None, description="Optional customer ID")
     notes: Optional[str] = Field(None, max_length=500, description="Optional transaction notes")
     idempotency_key: Optional[str] = Field(None, max_length=100, description="Optional unique idempotency key to prevent duplicate checkouts")
+
+
+class SaleStatusUpdate(BaseModel):
+    payment_status: Optional[str] = Field(None, description="PENDING, PAID, PARTIALLY_PAID, CANCELLED")
+    status: Optional[str] = Field(None, description="COMPLETED, CANCELLED, REFUNDED")
+    notes: Optional[str] = None
 
 
 class SaleItemResponse(BaseModel):
@@ -38,6 +45,7 @@ class SaleResponse(BaseModel):
     total_amount: float
     payment_method: str
     status: str
+    payment_status: Optional[str] = "PAID"
     notes: Optional[str] = None
     created_at: datetime
     items: List[SaleItemResponse]

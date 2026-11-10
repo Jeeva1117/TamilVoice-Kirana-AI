@@ -11,7 +11,7 @@ from backend.app.models.sale_item import SaleItem
 from backend.app.models.product import Product
 from backend.app.models.customer import Customer
 from backend.app.models.stock_movement import StockMovement
-from backend.app.schemas.sale import SaleCreate
+from backend.app.schemas.sale import SaleCreate, SaleStatusUpdate
 from backend.app.services.billing_calculator import calculate_line_item, quantize_currency
 from backend.app.utils.helpers import generate_transaction_id
 
@@ -57,6 +57,10 @@ def create_sale(db: Session, sale_in: SaleCreate) -> Sale:
         note_text = f"{note_text} [IDEMP:{sale_in.idempotency_key.strip()}]".strip()
 
     try:
+        pay_status = (sale_in.payment_status or "PAID").upper()
+        if sale_in.payment_method.upper() == "CREDIT":
+            pay_status = "PENDING"
+
         # Create Sale shell
         sale = Sale(
             transaction_id=txn_id,
@@ -64,6 +68,7 @@ def create_sale(db: Session, sale_in: SaleCreate) -> Sale:
             total_amount=0.0,
             payment_method=sale_in.payment_method.upper(),
             status="COMPLETED",
+            payment_status=pay_status,
             notes=note_text
         )
         db.add(sale)
@@ -215,4 +220,18 @@ def get_sale_by_transaction_id(db: Session, transaction_id: str) -> Sale:
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Transaction '{transaction_id}' not found."
         )
+    return sale
+
+
+def update_sale_status(db: Session, sale_id: int, status_in: SaleStatusUpdate) -> Sale:
+    """Update sale payment status or lifecycle status."""
+    sale = get_sale_by_id(db=db, sale_id=sale_id)
+    if status_in.payment_status:
+        sale.payment_status = status_in.payment_status.upper()
+    if status_in.status:
+        sale.status = status_in.status.upper()
+    if status_in.notes is not None:
+        sale.notes = status_in.notes
+    db.commit()
+    db.refresh(sale)
     return sale

@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from backend.app.database import get_db
 from backend.app.schemas.sale import (
     SaleCreate,
+    SaleStatusUpdate,
     SaleResponse,
     SaleListResponse,
 )
@@ -67,4 +68,10 @@ def get_sale(sale_id: int, db: Session = Depends(get_db)):
 def get_sale_by_tx_id(transaction_id: str, db: Session = Depends(get_db)):
     """Retrieve sale by transaction code (e.g. TXN-20261106-ABCD)."""
     return sales_service.get_sale_by_transaction_id(db=db, transaction_id=transaction_id)
+
+
+@router.patch("/{sale_id}/status", response_model=SaleResponse)
+def update_sale_payment_status(sale_id: int, status_in: SaleStatusUpdate, db: Session = Depends(get_db)):
+    """Update sale payment status (e.g. PENDING -> PAID) or lifecycle status."""
+    return sales_service.update_sale_status(db=db, sale_id=sale_id, status_in=status_in)
 

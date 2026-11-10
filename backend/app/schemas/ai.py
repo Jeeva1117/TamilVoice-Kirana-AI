@@ -94,6 +94,45 @@ class CommandIntent(BaseModel):
     requires_clarification: bool = Field(False, description="Flag indicating missing critical parameters")
     clarification_question: Optional[str] = Field(None, description="Question to prompt merchant for details")
 
+    @field_validator("intent", mode="before")
+    @classmethod
+    def normalize_intent(cls, v):
+        if not v:
+            return IntentCategory.UNKNOWN
+        if isinstance(v, IntentCategory):
+            return v
+        s = str(v).strip().lower()
+        mapping = {
+            "check_stock": IntentCategory.CHECK_STOCK,
+            "add_stock": IntentCategory.ADD_STOCK,
+            "remove_stock": IntentCategory.SELL_PRODUCT,
+            "create_bill": IntentCategory.SELL_PRODUCT,
+            "sell_product": IntentCategory.SELL_PRODUCT,
+            "check_sales": IntentCategory.SALES_REPORT,
+            "sales_report": IntentCategory.SALES_REPORT,
+            "check_product_price": IntentCategory.CHECK_STOCK,
+            "add_product": IntentCategory.CREATE_PRODUCT,
+            "create_product": IntentCategory.CREATE_PRODUCT,
+            "update_product": IntentCategory.UPDATE_PRICE,
+            "update_price": IntentCategory.UPDATE_PRICE,
+            "edit_pending_bill": IntentCategory.CONFIRM_ACTION,
+            "cancel_pending_bill": IntentCategory.CANCEL_ACTION,
+            "cancel_action": IntentCategory.CANCEL_ACTION,
+            "confirm_bill": IntentCategory.CONFIRM_ACTION,
+            "confirm_action": IntentCategory.CONFIRM_ACTION,
+            "record_payment": IntentCategory.CONFIRM_ACTION,
+            "general_conversation": IntentCategory.GENERAL_QUERY,
+            "general_query": IntentCategory.GENERAL_QUERY,
+            "greeting": IntentCategory.GREETING,
+            "thank_you": IntentCategory.THANK_YOU,
+        }
+        if s in mapping:
+            return mapping[s]
+        try:
+            return IntentCategory(str(v).strip().upper())
+        except Exception:
+            return IntentCategory.UNKNOWN
+
     @model_validator(mode="after")
     def validate_business_constraints(self):
         is_tamil = self.language in ("Tamil", "Tanglish", "Mixed") or any(

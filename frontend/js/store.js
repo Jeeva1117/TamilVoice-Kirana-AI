@@ -99,6 +99,8 @@ export const Store = {
               unit_price: hasItems && s.items.length === 1 ? s.items[0].unit_price : s.total_amount,
               total_amount: s.total_amount,
               payment_method: s.payment_method,
+              payment_status: s.payment_status || (s.payment_method === 'CREDIT' ? 'PENDING' : 'PAID'),
+              db_id: s.id,
               customer_name: s.customer_name || 'Walk-in Counter',
               status: s.status,
               notes: s.notes || ''

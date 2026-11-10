@@ -338,7 +338,8 @@ export const Sales = {
 
     this.tableBody.innerHTML = filtered.map(s => {
       const pmClass = (s.payment_method || 'Cash').toLowerCase();
-      const statusClass = (s.status || 'Completed').toLowerCase() === 'completed' ? 'success' : 'warning';
+      const payStatus = (s.payment_status || (s.payment_method === 'CREDIT' ? 'PENDING' : 'PAID')).toUpperCase();
+      const statusClass = (payStatus === 'PAID') ? 'success' : (payStatus === 'PENDING' ? 'warning' : 'neutral');
       const hasMultiItems = s.items && s.items.length > 1;
       const isSingleItem = s.items && s.items.length === 1;
 
@@ -390,8 +391,8 @@ export const Sales = {
           </td>
           <td>
             <span class="badge-pill ${statusClass}">
-              <span class="status-indicator-dot completed"></span>
-              ${s.status || 'Completed'}
+              <span class="status-indicator-dot ${statusClass}"></span>
+              ${payStatus}
             </span>
           </td>
           <td>
@@ -741,7 +742,7 @@ export const Sales = {
         </div>
         <div class="receipt-info-row">
           <span>Customer: ${sale.customer_name || 'Walk-in Counter'}</span>
-          <span>Payment: ${sale.payment_method || 'CASH'}</span>
+          <span>Payment: <strong>${sale.payment_method || 'CASH'}</strong> (${(sale.payment_status || (sale.payment_method === 'CREDIT' ? 'PENDING' : 'PAID')).toUpperCase()})</span>
         </div>
 
         <table class="receipt-items-table">
