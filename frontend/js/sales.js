@@ -5,6 +5,8 @@
 
 import { Utils } from './utils.js';
 import { Store } from './store.js';
+import { ApiService } from './api.js';
+import { Settings } from './settings.js';
 
 export const Sales = {
   searchQuery: '',
@@ -14,8 +16,11 @@ export const Sales = {
   sortBy: 'date-desc',
   pendingSaleData: null,
   activeReceiptSale: null,
+  currentCart: [],
+  billRef: '',
 
   init() {
+    this.billRef = 'BILL-' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '-' + Math.floor(100 + Math.random() * 900);
     this.cacheDOM();
     this.bindEvents();
     this.render();
@@ -31,6 +36,20 @@ export const Sales = {
   },
 
   cacheDOM() {
+    // Current Bill Panel Elements
+    this.currentBillPanel = document.getElementById('current-bill-panel');
+    this.currentBillRef = document.getElementById('current-bill-ref');
+    this.currentBillStatus = document.getElementById('current-bill-status-badge');
+    this.currentBillTbody = document.getElementById('current-bill-tbody');
+    this.currentBillEmpty = document.getElementById('current-bill-empty');
+    this.currentBillSubtotal = document.getElementById('current-bill-subtotal');
+    this.currentBillGrandTotal = document.getElementById('current-bill-grand-total');
+    this.currentBillPayment = document.getElementById('current-bill-payment-method');
+    this.btnBillAddProduct = document.getElementById('btn-bill-add-product');
+    this.btnBillCancelAll = document.getElementById('btn-bill-cancel-all');
+    this.btnBillCancelCart = document.getElementById('btn-bill-cancel-cart');
+    this.btnBillConfirmPay = document.getElementById('btn-bill-confirm-and-pay');
+
     // KPI elements
     this.kpiTodaySales = document.getElementById('sales-kpi-today');
     this.kpiTotalRevenue = document.getElementById('sales-kpi-total-revenue');
@@ -153,17 +172,46 @@ export const Sales = {
       this.btnFinalConfirmSale.addEventListener('click', () => this.executeSale());
     }
 
+    // Back to Edit button in Confirm Sale Modal
+    const btnBackToEdit = document.getElementById('btn-back-to-edit-sale');
+    if (btnBackToEdit) {
+      btnBackToEdit.addEventListener('click', () => {
+        if (this.modalConfirmSale) this.modalConfirmSale.classList.remove('open');
+        if (this.modalNewSale) this.modalNewSale.classList.add('open');
+      });
+    }
+
     // Print Receipt button click
     if (this.btnPrintReceiptNow) {
       this.btnPrintReceiptNow.addEventListener('click', () => {
         window.print();
       });
     }
+
+    // Current Bill Panel Actions
+    if (this.btnBillAddProduct) {
+      this.btnBillAddProduct.addEventListener('click', () => this.openNewSaleModal());
+    }
+    if (this.btnBillCancelAll) {
+      this.btnBillCancelAll.addEventListener('click', () => this.clearCurrentBill());
+    }
+    if (this.btnBillCancelCart) {
+      this.btnBillCancelCart.addEventListener('click', () => this.clearCurrentBill());
+    }
+    if (this.btnBillConfirmPay) {
+      this.btnBillConfirmPay.addEventListener('click', () => this.confirmAndCheckoutCurrentBill());
+    }
+
+    // Voice Cart Synchronization Event
+    window.addEventListener('voice-cart-updated', (e) => {
+      if (e.detail) this.handleVoiceCartUpdate(e.detail);
+    });
   },
 
   render() {
     this.renderKPIs();
     this.renderTable();
+    this.renderCurrentBill();
   },
 
   renderKPIs() {
@@ -260,20 +308,25 @@ export const Sales = {
     }
 
     if (!filtered.length) {
+      const allSales = Store.getSales();
+      const isEmptySales = allSales.length === 0;
       this.tableBody.innerHTML = `
         <tr>
           <td colspan="9">
             <div class="table-empty-state">
               <svg class="table-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
+                <circle cx="11" cy="11" r="8"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
               </svg>
-              <h4 style="font-size: 1rem; color: var(--color-text-primary); margin-top: 4px;">No sales records found</h4>
+              <h4 style="font-size: 1rem; color: var(--color-text-primary); margin-top: 4px;">
+                ${isEmptySales ? 'No bills recorded yet' : 'No sales records found'}
+              </h4>
               <p style="font-size: 0.8125rem; color: var(--color-text-secondary); max-width: 320px;">
-                No invoices match your search or filter selection.
+                ${isEmptySales ? 'Record your first sale or use voice commands to bill items.' : 'No invoices match your search or filter selection.'}
               </p>
-              <button class="btn btn-sm btn-outline" style="margin-top: 8px;" onclick="document.getElementById('sales-btn-reset-filters').click();">
-                Reset All Filters
-              </button>
+              ${isEmptySales
+                ? '<button class="btn btn-sm btn-primary" style="margin-top: 8px;" onclick="document.getElementById(\'sales-btn-open-new\').click();">+ Record First Sale</button>'
+                : '<button class="btn btn-sm btn-outline" style="margin-top: 8px;" onclick="document.getElementById(\'sales-btn-reset-filters\').click();">Reset All Filters</button>'
+              }
             </div>
           </td>
         </tr>
@@ -286,7 +339,25 @@ export const Sales = {
     this.tableBody.innerHTML = filtered.map(s => {
       const pmClass = (s.payment_method || 'Cash').toLowerCase();
       const statusClass = (s.status || 'Completed').toLowerCase() === 'completed' ? 'success' : 'warning';
-      const prodDisplay = currentLang === 'ta' && s.product_name_ta ? s.product_name_ta : s.product_name;
+      const hasMultiItems = s.items && s.items.length > 1;
+      const isSingleItem = s.items && s.items.length === 1;
+
+      let displayProduct = s.product_name;
+      let displayQty = `${s.quantity} ${s.unit || ''}`;
+      let displayRate = Utils.formatINR(s.unit_price);
+
+      if (hasMultiItems) {
+        displayProduct = `<span class="badge-pill neutral" style="font-size: 11px; margin-right: 4px;">${s.items.length} Items</span> ${s.items_summary || s.product_name}`;
+        displayQty = `${s.items.length} items`;
+        displayRate = '—';
+      } else if (isSingleItem) {
+        const single = s.items[0];
+        displayProduct = single.product_name_snapshot || s.product_name;
+        displayQty = `${single.quantity} ${single.unit || ''}`;
+        displayRate = Utils.formatINR(single.unit_price);
+      } else if (currentLang === 'ta' && s.product_name_ta) {
+        displayProduct = s.product_name_ta;
+      }
 
       return `
         <tr>
@@ -301,15 +372,15 @@ export const Sales = {
           </td>
           <td>
             <div class="product-cell-name">
-              <span class="text-semibold">${prodDisplay}</span>
+              <span class="text-semibold" style="max-width: 260px; display: inline-block; white-space: normal;">${displayProduct}</span>
               ${s.customer_name ? `<span class="text-2xs text-muted">${s.customer_name}</span>` : ''}
             </div>
           </td>
           <td>
-            <span class="text-semibold">${s.quantity}</span> <span class="text-2xs text-muted">${s.unit || ''}</span>
+            <span class="text-semibold">${displayQty}</span>
           </td>
           <td>
-            <span class="text-muted text-xs">${Utils.formatINR(s.unit_price)}</span>
+            <span class="text-muted text-xs">${displayRate}</span>
           </td>
           <td>
             <span class="text-semibold text-primary">${Utils.formatINR(s.total_amount)}</span>
@@ -480,20 +551,42 @@ export const Sales = {
     if (this.modalConfirmSale) this.modalConfirmSale.classList.add('open');
   },
 
-  executeSale() {
+  async executeSale() {
     if (!this.pendingSaleData) return;
 
     try {
-      const newSale = Store.recordSale(this.pendingSaleData);
+      const saleData = { ...this.pendingSaleData };
+      let createdInvoice = null;
+
+      try {
+        const res = await ApiService.createSale({
+          items: [{
+            product_id: Number(saleData.product_id),
+            quantity: Number(saleData.quantity)
+          }],
+          payment_method: saleData.payment_method || 'CASH',
+          notes: saleData.notes || `Sold to ${saleData.customer_name}`
+        });
+        if (res && (res.id || res.transaction_id)) {
+          createdInvoice = res.transaction_id || `TX-${res.id}`;
+        }
+        await Store.syncFromBackend();
+        await Store.syncSalesFromBackend();
+      } catch (apiErr) {
+        console.warn('Backend createSale unavailable, falling back to local Store:', apiErr);
+      }
+
+      const newSale = Store.recordSale(saleData);
+      const invoiceId = createdInvoice || newSale.id;
       this.pendingSaleData = null;
 
       if (this.modalConfirmSale) this.modalConfirmSale.classList.remove('open');
 
-      Utils.showToast('success', 'Bill Recorded (Demo)', `Invoice ${newSale.id} created. Inventory deducted.`);
+      Utils.showToast('success', 'Bill Recorded', `Invoice ${invoiceId} created. Inventory deducted.`);
 
       // Prompt Receipt preview
       setTimeout(() => {
-        this.openReceiptModal(newSale.id);
+        this.openReceiptModal(invoiceId);
       }, 400);
 
     } catch (err) {
@@ -505,10 +598,52 @@ export const Sales = {
      TRANSACTION DETAILS MODAL
      ========================================================================= */
   openDetailsModal(id) {
-    const sale = Store.getSaleById(id);
+    const sale = (typeof id === 'object' && id !== null) ? id : Store.getSaleById(id);
     if (!sale || !this.modalDetails || !this.detailsContent) return;
 
     this.activeReceiptSale = sale;
+    const hasItems = sale.items && sale.items.length > 0;
+
+    let itemsHtml = '';
+    if (hasItems) {
+      itemsHtml = `
+        <table class="receipt-items-table" style="width: 100%; margin: 8px 0; font-size: 0.85rem;">
+          <thead>
+            <tr style="border-bottom: 1px solid var(--color-border); text-align: left;">
+              <th style="padding: 6px 4px;">Item</th>
+              <th style="text-align: center; padding: 6px 4px;">Qty</th>
+              <th style="text-align: right; padding: 6px 4px;">Rate</th>
+              <th style="text-align: right; padding: 6px 4px;">Line Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${sale.items.map(it => `
+              <tr style="border-bottom: 1px dashed var(--color-border);">
+                <td style="padding: 6px 4px;"><strong>${it.product_name_snapshot || it.name || it.product_name}</strong></td>
+                <td style="text-align: center; padding: 6px 4px;">${it.quantity} ${it.unit || ''}</td>
+                <td style="text-align: right; padding: 6px 4px;">${Utils.formatINR(it.unit_price)}</td>
+                <td style="text-align: right; padding: 6px 4px; font-weight: 600;">${Utils.formatINR(it.line_total || (it.quantity * it.unit_price))}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    } else {
+      itemsHtml = `
+        <div style="display: flex; justify-content: space-between; font-size: 0.875rem;">
+          <span class="text-muted">Item Billed:</span>
+          <strong>${sale.product_name}</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 0.875rem;">
+          <span class="text-muted">Quantity Sold:</span>
+          <span>${sale.quantity} ${sale.unit || ''}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 0.875rem;">
+          <span class="text-muted">Unit Rate:</span>
+          <span>${Utils.formatINR(sale.unit_price)}</span>
+        </div>
+      `;
+    }
 
     this.detailsContent.innerHTML = `
       <div style="display: flex; flex-direction: column; gap: var(--space-4);">
@@ -522,25 +657,19 @@ export const Sales = {
 
         <div style="background: var(--color-bg); padding: var(--space-4); border-radius: var(--radius-lg); border: 1px solid var(--color-border); display: flex; flex-direction: column; gap: 8px;">
           <div style="display: flex; justify-content: space-between; font-size: 0.875rem;">
-            <span class="text-muted">Item Billed:</span>
-            <strong>${sale.product_name} (${sale.product_name_ta || ''})</strong>
-          </div>
-          <div style="display: flex; justify-content: space-between; font-size: 0.875rem;">
-            <span class="text-muted">Quantity Sold:</span>
-            <span>${sale.quantity} ${sale.unit || ''}</span>
-          </div>
-          <div style="display: flex; justify-content: space-between; font-size: 0.875rem;">
-            <span class="text-muted">Unit Rate:</span>
-            <span>${Utils.formatINR(sale.unit_price)}</span>
-          </div>
-          <div style="display: flex; justify-content: space-between; font-size: 0.875rem;">
-            <span class="text-muted">Payment Method:</span>
-            <span class="payment-badge ${sale.payment_method.toLowerCase()}">${sale.payment_method}</span>
-          </div>
-          <div style="display: flex; justify-content: space-between; font-size: 0.875rem;">
             <span class="text-muted">Customer Name:</span>
             <span>${sale.customer_name || 'Counter Walk-in'}</span>
           </div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.875rem;">
+            <span class="text-muted">Payment Method:</span>
+            <span class="payment-badge ${sale.payment_method ? sale.payment_method.toLowerCase() : 'cash'}">${sale.payment_method || 'CASH'}</span>
+          </div>
+          
+          <div style="margin-top: 6px;">
+            <div style="font-weight: 600; font-size: 0.8rem; color: var(--color-text-secondary); margin-bottom: 4px;">Itemized Products:</div>
+            ${itemsHtml}
+          </div>
+
           ${sale.notes ? `
             <div style="border-top: 1px dashed var(--color-border); padding-top: 6px; font-size: 0.75rem; color: var(--color-text-muted);">
               Note: ${sale.notes}
@@ -568,33 +697,51 @@ export const Sales = {
   /* =========================================================================
      PRINTABLE RECEIPT MODAL
      ========================================================================= */
-  openReceiptModal(id) {
-    const sale = Store.getSaleById(id);
+  openReceiptModal(saleOrId) {
+    let sale = null;
+    if (typeof saleOrId === 'object' && saleOrId !== null) {
+      sale = saleOrId;
+    } else {
+      sale = Store.getSaleById(saleOrId);
+    }
     if (!sale || !this.modalReceipt || !this.receiptContainer) return;
 
     this.activeReceiptSale = sale;
+    const store = (Settings && typeof Settings.getStoreDetails === 'function')
+      ? Settings.getStoreDetails()
+      : {
+          shop_name: 'Arjun Grocery Store',
+          shop_name_ta: 'அர்ஜுன் மளிகைக் கடை',
+          owner_name: 'Jeevan',
+          phone: '+91 98401 23456',
+          address: '42, North Mada Street, Mylapore, Chennai, Tamil Nadu - 600004',
+          gstin: '33ABCDE1234F1Z5',
+          receipt_footer: 'நன்றி! மீண்டும் வருக! / Thank you, visit again!'
+        };
 
     // Build Receipt HTML
     this.receiptContainer.innerHTML = `
       <div class="receipt-wrapper">
         <div class="receipt-header">
-          <div class="receipt-shop-title">KARTHIK KIRANA STORE</div>
-          <div class="receipt-shop-tamil">கார்த்திக் மளிகைக் கடை</div>
-          <div class="receipt-shop-meta">12, Bazaar Street, Madurai, Tamil Nadu • Ph: 98765 43210</div>
-          <div class="receipt-demo-watermark">DEMO RECEIPT — NOT A FISCAL TAX INVOICE</div>
+          <div style="font-size: 11px; font-weight: 700; color: #64748B; letter-spacing: 1px; margin-bottom: 2px;">TAMILVOICE KIRANA AI</div>
+          <div class="receipt-shop-title">${(store.shop_name || 'ARJUN GROCERY STORE').toUpperCase()}</div>
+          ${store.shop_name_ta ? `<div class="receipt-shop-tamil">${store.shop_name_ta}</div>` : ''}
+          <div class="receipt-shop-meta">${store.address || ''} • Ph: ${store.phone}</div>
+          ${store.gstin ? `<div style="font-size: 11px; color: #475569; font-weight: 600; margin-top: 2px;">GSTIN: ${store.gstin}</div>` : ''}
+          <div class="receipt-watermark">RETAIL INVOICE / வாடிக்கையாளர் ரசீது</div>
         </div>
 
         <div class="receipt-info-row">
-          <span>Bill No: <strong>${sale.id}</strong></span>
+          <span>Invoice No: <strong>${sale.id}</strong></span>
           <span>Date: ${Utils.formatDate(sale.date)}</span>
         </div>
         <div class="receipt-info-row">
           <span>Time: ${Utils.formatTime(sale.date)}</span>
-          <span>Cashier: Karthik R.</span>
+          <span>Cashier: ${store.owner_name}</span>
         </div>
         <div class="receipt-info-row">
-          <span>Customer: ${sale.customer_name || 'Walk-in'}</span>
-          <span>Mode: ${sale.payment_method}</span>
+          <span>Customer: ${sale.customer_name || 'Walk-in Counter'}</span>
+          <span>Payment: ${sale.payment_method || 'CASH'}</span>
         </div>
 
         <table class="receipt-items-table">
@@ -607,26 +754,38 @@ export const Sales = {
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td>
-                <strong>${sale.product_name}</strong>
-                ${sale.product_name_ta ? `<div style="font-size: 10px; color: #64748B;">${sale.product_name_ta}</div>` : ''}
-              </td>
-              <td style="text-align: center;">${sale.quantity} ${sale.unit}</td>
-              <td style="text-align: right;">${Utils.formatINR(sale.unit_price)}</td>
-              <td style="text-align: right; font-weight: 600;">${Utils.formatINR(sale.total_amount)}</td>
-            </tr>
+            ${(sale.items && sale.items.length > 0)
+              ? sale.items.map(it => `
+                <tr>
+                  <td><strong>${it.product_name_snapshot || it.name || it.product_name}</strong></td>
+                  <td style="text-align: center;">${it.quantity} ${it.unit || ''}</td>
+                  <td style="text-align: right;">${Utils.formatINR(it.unit_price)}</td>
+                  <td style="text-align: right; font-weight: 600;">${Utils.formatINR(it.line_total || (it.quantity * it.unit_price))}</td>
+                </tr>
+              `).join('')
+              : `
+                <tr>
+                  <td>
+                    <strong>${sale.product_name}</strong>
+                    ${sale.product_name_ta ? `<div style="font-size: 10px; color: #64748B;">${sale.product_name_ta}</div>` : ''}
+                  </td>
+                  <td style="text-align: center;">${sale.quantity} ${sale.unit || ''}</td>
+                  <td style="text-align: right;">${Utils.formatINR(sale.unit_price)}</td>
+                  <td style="text-align: right; font-weight: 600;">${Utils.formatINR(sale.total_amount)}</td>
+                </tr>
+              `
+            }
           </tbody>
         </table>
 
         <div class="receipt-total-row">
-          <span>TOTAL AMOUNT PAID:</span>
+          <span>GRAND TOTAL AMOUNT:</span>
           <span>${Utils.formatINR(sale.total_amount)}</span>
         </div>
 
         <div class="receipt-footer">
           <div>Goods once sold can be exchanged within 2 days with bill.</div>
-          <div class="receipt-thankyou-tamil">நன்றி! மீண்டும் வருக!</div>
+          <div class="receipt-thankyou-tamil">${store.receipt_footer || 'நன்றி! மீண்டும் வருக!'}</div>
           <div style="font-size: 11px; margin-top: 2px;">Thank you for shopping with us!</div>
         </div>
       </div>
@@ -635,6 +794,221 @@ export const Sales = {
     // Close any previous detail modal and open receipt modal
     if (this.modalDetails) this.modalDetails.classList.remove('open');
     this.modalReceipt.classList.add('open');
+  },
+
+  /* =========================================================================
+     CURRENT BILL (தற்போதைய பில்) METHODS
+     ========================================================================= */
+
+  handleVoiceCartUpdate(data) {
+    if (!data) return;
+    if (data.ref) {
+      this.billRef = `BILL-${data.ref.slice(0, 8).toUpperCase()}`;
+    }
+    if (data.items && Array.isArray(data.items)) {
+      this.currentCart = data.items.map(it => ({
+        product_id: it.product_id,
+        name: it.product_name,
+        quantity: it.quantity,
+        unit: it.unit || 'unit',
+        unit_price: it.unit_price,
+        line_total: it.line_total || (it.quantity * it.unit_price),
+        current_stock: it.current_stock,
+        projected_stock: it.projected_stock
+      }));
+    } else if (data.cleared) {
+      this.currentCart = [];
+      this.billRef = 'BILL-' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '-' + Math.floor(100 + Math.random() * 900);
+    }
+    this.renderCurrentBill();
+  },
+
+  renderCurrentBill() {
+    if (!this.currentBillTbody) return;
+
+    if (this.currentBillRef) {
+      this.currentBillRef.textContent = this.billRef;
+    }
+
+    if (!this.currentCart || this.currentCart.length === 0) {
+      this.currentBillTbody.innerHTML = '';
+      if (this.currentBillEmpty) this.currentBillEmpty.style.display = 'block';
+      if (this.currentBillSubtotal) this.currentBillSubtotal.textContent = '₹0.00';
+      if (this.currentBillGrandTotal) this.currentBillGrandTotal.textContent = '₹0.00';
+      if (this.currentBillStatus) {
+        this.currentBillStatus.textContent = 'Cart Empty';
+        this.currentBillStatus.className = 'badge-pill neutral';
+      }
+      return;
+    }
+
+    if (this.currentBillEmpty) this.currentBillEmpty.style.display = 'none';
+
+    const grandTotal = this.currentCart.reduce((sum, it) => sum + (Number(it.line_total) || (it.quantity * it.unit_price)), 0);
+    const totalQty = this.currentCart.reduce((sum, it) => sum + Number(it.quantity), 0);
+
+    if (this.currentBillSubtotal) this.currentBillSubtotal.textContent = Utils.formatCurrency(grandTotal);
+    if (this.currentBillGrandTotal) this.currentBillGrandTotal.textContent = Utils.formatCurrency(grandTotal);
+    if (this.currentBillStatus) {
+      this.currentBillStatus.textContent = `${this.currentCart.length} products (${totalQty} units)`;
+      this.currentBillStatus.className = 'badge-pill warning';
+    }
+
+    this.currentBillTbody.innerHTML = this.currentCart.map((item, idx) => {
+      const lineAmt = item.line_total || (item.quantity * item.unit_price);
+      return `
+        <tr>
+          <td><strong style="color: #94A3B8;">${idx + 1}</strong></td>
+          <td>
+            <strong>${item.name}</strong>
+            ${item.current_stock !== undefined ? `<div style="font-size: 0.75rem; color: #94A3B8;">Stock: ${item.current_stock} &rarr; <span class="text-primary">${item.projected_stock !== undefined ? item.projected_stock : (item.current_stock - item.quantity)} ${item.unit}</span></div>` : ''}
+          </td>
+          <td>
+            <div style="display: flex; align-items: center; gap: 0.35rem;">
+              <button class="btn btn-outline btn-xs btn-cart-dec" data-idx="${idx}" style="padding: 2px 6px;">-</button>
+              <input type="number" min="0.1" step="any" class="form-input cart-qty-input" data-idx="${idx}" value="${item.quantity}" style="width: 55px; text-align: center; padding: 2px 4px; font-size: 0.85rem;">
+              <button class="btn btn-outline btn-xs btn-cart-inc" data-idx="${idx}" style="padding: 2px 6px;">+</button>
+              <span style="font-size: 0.8rem; color: #94A3B8; margin-left: 2px;">${item.unit}</span>
+            </div>
+          </td>
+          <td style="font-size: 0.9rem;">₹${Number(item.unit_price).toFixed(2)}</td>
+          <td><strong class="text-success" style="font-size: 0.95rem;">₹${Number(lineAmt).toFixed(2)}</strong></td>
+          <td style="text-align: center;">
+            <button class="btn btn-ghost btn-xs text-danger btn-cart-remove" data-idx="${idx}" title="Remove Item" style="color: #EF4444; font-size: 1rem; line-height: 1;">&times;</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    // Bind item buttons
+    this.currentBillTbody.querySelectorAll('.btn-cart-dec').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const i = parseInt(btn.getAttribute('data-idx'), 10);
+        if (this.currentCart[i].quantity > 1) {
+          this.currentCart[i].quantity -= 1;
+          this.currentCart[i].line_total = this.currentCart[i].quantity * this.currentCart[i].unit_price;
+          this.renderCurrentBill();
+        } else {
+          this.removeFromCurrentBill(i);
+        }
+      });
+    });
+
+    this.currentBillTbody.querySelectorAll('.btn-cart-inc').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const i = parseInt(btn.getAttribute('data-idx'), 10);
+        this.currentCart[i].quantity += 1;
+        this.currentCart[i].line_total = this.currentCart[i].quantity * this.currentCart[i].unit_price;
+        this.renderCurrentBill();
+      });
+    });
+
+    this.currentBillTbody.querySelectorAll('.cart-qty-input').forEach(input => {
+      input.addEventListener('change', (e) => {
+        const i = parseInt(input.getAttribute('data-idx'), 10);
+        const val = parseFloat(e.target.value);
+        if (!isNaN(val) && val > 0) {
+          this.currentCart[i].quantity = val;
+          this.currentCart[i].line_total = val * this.currentCart[i].unit_price;
+          this.renderCurrentBill();
+        } else {
+          this.renderCurrentBill();
+        }
+      });
+    });
+
+    this.currentBillTbody.querySelectorAll('.btn-cart-remove').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const i = parseInt(btn.getAttribute('data-idx'), 10);
+        this.removeFromCurrentBill(i);
+      });
+    });
+  },
+
+  removeFromCurrentBill(index) {
+    if (this.currentCart[index]) {
+      const removed = this.currentCart.splice(index, 1);
+      Utils.showToast('info', 'Item Removed', `${removed[0]?.name} removed from current bill.`);
+      this.renderCurrentBill();
+    }
+  },
+
+  clearCurrentBill() {
+    this.currentCart = [];
+    this.billRef = 'BILL-' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '-' + Math.floor(100 + Math.random() * 900);
+    this.renderCurrentBill();
+    Utils.showToast('info', 'Bill Cleared', 'Current bill cart has been cleared.');
+  },
+
+  async confirmAndCheckoutCurrentBill() {
+    if (!this.currentCart || this.currentCart.length === 0) {
+      Utils.showToast('warning', 'Empty Cart', 'Please add products to the bill before confirming.');
+      return;
+    }
+
+    const paymentMethod = this.currentBillPayment ? this.currentBillPayment.value : 'CASH';
+    const saleItems = this.currentCart.map(it => ({
+      product_id: it.product_id,
+      quantity: Number(it.quantity)
+    }));
+
+    try {
+      if (this.btnBillConfirmPay) {
+        this.btnBillConfirmPay.disabled = true;
+        this.btnBillConfirmPay.innerHTML = '<span>Processing Bill...</span>';
+      }
+
+      const res = await ApiService.createSale({
+        items: saleItems,
+        payment_method: paymentMethod,
+        notes: `Counter Checkout (${this.billRef})`
+      });
+
+      if (res && (res.transaction_id || res.id)) {
+        Utils.showToast('success', 'Bill Completed', `Invoice ${res.transaction_id} created successfully! Total: ₹${res.total_amount}`);
+        
+        // Refresh store
+        if (Store && typeof Store.syncFromBackend === 'function') {
+          await Store.syncFromBackend();
+        }
+        if (Store && typeof Store.syncSalesFromBackend === 'function') {
+          await Store.syncSalesFromBackend();
+        }
+
+        const completedSale = {
+          id: res.transaction_id,
+          date: res.created_at || new Date().toISOString(),
+          customer_name: res.customer_name || 'Walk-in Counter',
+          payment_method: res.payment_method || paymentMethod,
+          total_amount: res.total_amount,
+          items: res.items || this.currentCart.map(c => ({
+            product_name_snapshot: c.name,
+            quantity: c.quantity,
+            unit: c.unit,
+            unit_price: c.unit_price,
+            line_total: c.line_total || (c.quantity * c.unit_price)
+          }))
+        };
+
+        this.clearCurrentBill();
+
+        // Open Printable Receipt Preview Modal
+        this.openReceiptModal(completedSale);
+      } else {
+        throw new Error(res?.detail || 'Failed to complete sale');
+      }
+    } catch (err) {
+      console.error('[Sales] Checkout error:', err);
+      Utils.showToast('error', 'Checkout Error', err.message || 'Could not complete bill transaction.');
+    } finally {
+      if (this.btnBillConfirmPay) {
+        this.btnBillConfirmPay.disabled = false;
+        this.btnBillConfirmPay.innerHTML = `
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Confirm & Generate Bill</span>
+        `;
+      }
+    }
   }
 };
 

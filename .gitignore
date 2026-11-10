@@ -45,7 +45,13 @@ secrets.json
 *.sqlite
 *.sqlite3
 *.db
+*.db.backup
 *.db-journal
+
+# Scratch & test scripts
+scratch/
+test_*.wav
+sample_*.wav
 
 # Node / Frontend builds
 node_modules/

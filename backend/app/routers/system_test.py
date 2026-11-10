@@ -258,10 +258,11 @@ def _run_single_test(test_id: str, mode: str, db: Session, confirm_real: bool = 
         logs.append(f"Updated Rice stock: {rice.quantity} kg (Deducted 2.0 kg)")
 
         dur = round((time.perf_counter() - t0) * 1000, 2)
-        assert abs(sale.total_amount - (2.0 * 60.0)) < 0.01, "Expected total ₹120"
+        expected_total = round(2.0 * rice.selling_price, 2)
+        assert abs(sale.total_amount - expected_total) < 0.01, f"Expected total ₹{expected_total}, got ₹{sale.total_amount}"
         return TestResultItem(
             test_id=test_id,
-            title="Sales Transaction & Stock Deduction (Rice 2kg @ ₹60 = ₹120)",
+            title=f"Sales Transaction & Stock Deduction (Rice 2kg @ ₹{rice.selling_price} = ₹{sale.total_amount})",
             category="Sales & Billing",
             status="PASS",
             mode="MOCK",

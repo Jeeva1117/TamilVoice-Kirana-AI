@@ -14,6 +14,7 @@ class SaleCreate(BaseModel):
     payment_method: str = Field("CASH", description="CASH, UPI, CREDIT, CARD")
     customer_id: Optional[int] = Field(None, description="Optional customer ID")
     notes: Optional[str] = Field(None, max_length=500, description="Optional transaction notes")
+    idempotency_key: Optional[str] = Field(None, max_length=100, description="Optional unique idempotency key to prevent duplicate checkouts")
 
 
 class SaleItemResponse(BaseModel):

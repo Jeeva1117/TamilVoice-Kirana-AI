@@ -10,6 +10,7 @@ import { Dashboard } from './dashboard.js';
 import { VoiceAssistant } from './voice.js';
 import { Inventory } from './inventory.js';
 import { Sales } from './sales.js';
+import { Bills } from './bills.js';
 import { Reports } from './reports.js';
 import { Customers } from './customers.js';
 import { Settings } from './settings.js';
@@ -26,15 +27,16 @@ export const App = {
     VoiceAssistant.init();
     Inventory.init();
     Sales.init();
+    Bills.init();
     Reports.init();
     Customers.init();
     Settings.init();
     TestingDashboard.init();
     this.bindGlobalEvents();
 
-    // Check if initial hash is set (e.g. #voice, #testing)
+    // Check if initial hash is set (e.g. #voice, #testing, #bills)
     const initialHash = window.location.hash.replace('#', '');
-    if (initialHash && ['dashboard', 'voice', 'inventory', 'sales', 'reports', 'customers', 'settings', 'testing'].includes(initialHash)) {
+    if (initialHash && ['dashboard', 'voice', 'inventory', 'sales', 'bills', 'reports', 'customers', 'settings', 'testing'].includes(initialHash)) {
       Navigation.switchView(initialHash, false);
     }
 
@@ -109,9 +111,70 @@ export const App = {
     if (newSaleBtn) {
       newSaleBtn.addEventListener('click', () => {
         Navigation.switchView('sales');
+        if (window.Sales && typeof window.Sales.openNewSaleModal === 'function') {
+          setTimeout(() => window.Sales.openNewSaleModal(), 100);
+        }
         Utils.showToast('info', 'New Sale', 'Navigating to billing and sales management.');
       });
     }
+
+    // Quick Action Chips in Welcome Bar
+    const chipVoice = document.getElementById('chip-quick-voice');
+    if (chipVoice) {
+      chipVoice.addEventListener('click', () => {
+        Navigation.switchView('voice');
+      });
+    }
+
+    const chipBill = document.getElementById('chip-quick-bill');
+    if (chipBill) {
+      chipBill.addEventListener('click', () => {
+        Navigation.switchView('sales');
+        if (window.Sales && typeof window.Sales.openNewSaleModal === 'function') {
+          setTimeout(() => window.Sales.openNewSaleModal(), 100);
+        }
+      });
+    }
+
+    const chipProduct = document.getElementById('chip-quick-product');
+    if (chipProduct) {
+      chipProduct.addEventListener('click', () => {
+        Navigation.switchView('inventory');
+        if (window.Inventory && typeof window.Inventory.openAddModal === 'function') {
+          setTimeout(() => window.Inventory.openAddModal(), 100);
+        }
+      });
+    }
+
+    const chipReports = document.getElementById('chip-quick-reports');
+    if (chipReports) {
+      chipReports.addEventListener('click', () => {
+        Navigation.switchView('reports');
+      });
+    }
+
+    const chipCustomers = document.getElementById('chip-quick-customers');
+    if (chipCustomers) {
+      chipCustomers.addEventListener('click', () => {
+        Navigation.switchView('customers');
+      });
+    }
+
+    // Delegated modal close handler for any [data-close-modal] element
+    document.addEventListener('click', (e) => {
+      const closeBtn = e.target.closest('[data-close-modal]');
+      if (closeBtn) {
+        const modal = closeBtn.closest('.modal-backdrop');
+        if (modal) modal.classList.remove('open');
+      }
+    });
+
+    // Close modal on direct backdrop click
+    document.addEventListener('click', (e) => {
+      if (e.target.classList && e.target.classList.contains('modal-backdrop')) {
+        e.target.classList.remove('open');
+      }
+    });
 
     // Notifications Button Click
     const notifBtn = document.getElementById('btn-notifications');

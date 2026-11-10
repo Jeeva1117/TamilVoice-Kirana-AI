@@ -362,18 +362,20 @@ def test_validation_voice_stt_and_tts_mode_a(client: TestClient):
         + (b"\x00" * 300)
     )
     files = {"file": ("test.wav", wav_bytes, "audio/wav")}
-    response = client.post("/api/voice/transcribe", files=files, data={"language": "ta-IN"})
-    assert response.status_code == 200
-    stt_data = response.json()
-    assert "transcript" in stt_data
-    assert stt_data.get("provider") == "mock_prisma"
+    with patch.object(settings, "GNANI_API_KEY", ""):
+        response = client.post("/api/voice/transcribe", files=files, data={"language": "ta-IN"})
+        assert response.status_code == 200
+        stt_data = response.json()
+        assert "transcript" in stt_data
+        assert stt_data.get("provider") == "mock_prisma"
 
     # TTS Test (Mock synthesis)
     tts_payload = {"text": "வணக்கம்! அரிசி இருப்பு அப்டேட் செய்யப்பட்டது.", "language": "ta-IN", "speed": 1.0}
-    tts_res = client.post("/api/voice/speak", json=tts_payload)
-    assert tts_res.status_code == 200
-    assert tts_res.headers["content-type"] == "audio/wav"
-    assert len(tts_res.content) > 44  # Valid WAV header size
+    with patch.object(settings, "GNANI_API_KEY", ""):
+        tts_res = client.post("/api/voice/speak", json=tts_payload)
+        assert tts_res.status_code == 200
+        assert tts_res.headers["content-type"] == "audio/wav"
+        assert len(tts_res.content) > 44  # Valid WAV header size
 
 
 # =============================================================================

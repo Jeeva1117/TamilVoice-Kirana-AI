@@ -1,5 +1,6 @@
-"""Sales Service: Atomic transactions, stock deduction, pricing snapshots."""
+"""Sales Service: Atomic transactions, stock deduction, pricing snapshots, and Decimal calculations."""
 import math
+from decimal import Decimal
 from typing import Optional, List, Tuple
 from datetime import datetime
 from fastapi import HTTPException, status
@@ -11,6 +12,7 @@ from backend.app.models.product import Product
 from backend.app.models.customer import Customer
 from backend.app.models.stock_movement import StockMovement
 from backend.app.schemas.sale import SaleCreate
+from backend.app.services.billing_calculator import calculate_line_item, quantize_currency
 from backend.app.utils.helpers import generate_transaction_id
 
 
@@ -18,18 +20,26 @@ def create_sale(db: Session, sale_in: SaleCreate) -> Sale:
     """
     Atomic transaction to record a sale:
     1. Validates products exist and have sufficient stock
-    2. Server-computes prices and line totals (never trusts client totals)
-    3. Deducts inventory atomically
-    4. Logs StockMovement for each line item
-    5. Records historical price and product name snapshots
-    6. Updates customer credit balance if payment_method is CREDIT
-    7. Rolls back completely on any error
+    2. Server-computes prices and line totals using authoritative Decimal billing calculator
+    3. Prevents duplicate bills via idempotency key
+    4. Deducts inventory atomically
+    5. Logs StockMovement for each line item
+    6. Records historical price and product name snapshots
+    7. Updates customer credit balance if payment_method is CREDIT
+    8. Rolls back completely on any error
     """
     if not sale_in.items:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Sale must contain at least one product item."
         )
+
+    # Idempotency guard: Prevent duplicate sales from network retries
+    if sale_in.idempotency_key and sale_in.idempotency_key.strip():
+        clean_key = sale_in.idempotency_key.strip()
+        existing_sale = db.query(Sale).filter(Sale.notes.ilike(f"%IDEMP:{clean_key}%")).first()
+        if existing_sale:
+            return existing_sale
 
     # Optional customer check
     customer = None
@@ -42,6 +52,9 @@ def create_sale(db: Session, sale_in: SaleCreate) -> Sale:
             )
 
     txn_id = generate_transaction_id()
+    note_text = sale_in.notes or ""
+    if sale_in.idempotency_key and sale_in.idempotency_key.strip():
+        note_text = f"{note_text} [IDEMP:{sale_in.idempotency_key.strip()}]".strip()
 
     try:
         # Create Sale shell
@@ -51,12 +64,12 @@ def create_sale(db: Session, sale_in: SaleCreate) -> Sale:
             total_amount=0.0,
             payment_method=sale_in.payment_method.upper(),
             status="COMPLETED",
-            notes=sale_in.notes
+            notes=note_text
         )
         db.add(sale)
         db.flush()  # Populates sale.id for foreign key
 
-        total_amount = 0.0
+        total_amount_dec = Decimal("0.00")
 
         for item in sale_in.items:
             # Query product with lock to avoid race conditions
@@ -77,6 +90,12 @@ def create_sale(db: Session, sale_in: SaleCreate) -> Sale:
                     detail=f"Quantity for product '{product.name}' must be greater than zero."
                 )
 
+            if product.selling_price is None or product.selling_price < 0:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Product '{product.name}' has invalid or unconfigured selling price in database."
+                )
+
             # Stock check
             if product.quantity < item.quantity:
                 raise HTTPException(
@@ -87,15 +106,20 @@ def create_sale(db: Session, sale_in: SaleCreate) -> Sale:
                     )
                 )
 
-            # Deduct inventory
+            # Deduct inventory atomically
             prev_qty = product.quantity
             new_qty = round(prev_qty - item.quantity, 3)
+            if new_qty < 0:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Cannot deduct stock below zero for '{product.name}'."
+                )
             product.quantity = new_qty
 
-            # Calculate server-side total
-            unit_price = round(product.selling_price, 2)
-            line_total = round(item.quantity * unit_price, 2)
-            total_amount += line_total
+            # Calculate server-side total with Decimal precision (guarantees ₹40 * 2 = ₹80, ₹55 * 12 = ₹660)
+            unit_price_dec = quantize_currency(product.selling_price)
+            line_tot_dec = calculate_line_item(quantity=item.quantity, unit_price=unit_price_dec, unit=product.unit)
+            total_amount_dec += line_tot_dec
 
             # Create SaleItem with historical price snapshot
             sale_item = SaleItem(
@@ -104,8 +128,8 @@ def create_sale(db: Session, sale_in: SaleCreate) -> Sale:
                 product_name_snapshot=product.name,
                 quantity=item.quantity,
                 unit=product.unit,
-                unit_price=unit_price,
-                line_total=line_total,
+                unit_price=float(unit_price_dec),
+                line_total=float(line_tot_dec),
             )
             db.add(sale_item)
 
@@ -122,11 +146,11 @@ def create_sale(db: Session, sale_in: SaleCreate) -> Sale:
             db.add(movement)
 
         # Finalize total
-        sale.total_amount = round(total_amount, 2)
+        sale.total_amount = float(total_amount_dec)
 
         # Handle Udhaar / Credit
         if sale_in.payment_method.upper() == "CREDIT" and customer:
-            customer.credit_balance = round(customer.credit_balance + total_amount, 2)
+            customer.credit_balance = round(customer.credit_balance + float(total_amount_dec), 2)
 
         db.commit()
         db.refresh(sale)

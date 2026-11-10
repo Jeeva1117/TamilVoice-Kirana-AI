@@ -93,7 +93,7 @@
             </svg>
           </span>
           <span class="nav-item-text">Inventory</span>
-          <span class="nav-badge count-badge">428</span>
+          <span class="nav-badge count-badge" id="nav-inventory-badge">0</span>
         </a>
 
         <a href="#sales" class="nav-link" data-view="sales">
@@ -104,7 +104,21 @@
               <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
             </svg>
           </span>
-          <span class="nav-item-text">Sales & Orders</span>
+          <span class="nav-item-text">Billing Counter</span>
+        </a>
+
+        <a href="#bills" class="nav-link" data-view="bills">
+          <span class="nav-icon" style="color: #10B981;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+              <polyline points="10 9 9 9 8 9"/>
+            </svg>
+          </span>
+          <span class="nav-item-text">Bill History</span>
+          <span class="nav-badge count-badge" id="nav-bills-badge">0</span>
         </a>
 
         <a href="#reports" class="nav-link" data-view="reports">
@@ -139,18 +153,6 @@
             </svg>
           </span>
           <span class="nav-item-text">Settings</span>
-        </a>
-
-        <a href="#testing" class="nav-link" data-view="testing">
-          <span class="nav-icon" style="color: #38BDF8;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M10 2v7.31L4.2 19a2 2 0 0 0 1.66 3h12.28a2 2 0 0 0 1.66-3L14 9.31V2"/>
-              <path d="M8.5 2h7"/>
-              <path d="M7 16h10"/>
-            </svg>
-          </span>
-          <span class="nav-item-text">Test Lab & Validation</span>
-          <span class="nav-badge" style="background: rgba(56, 189, 248, 0.15); color: #38BDF8; font-weight: 600;">QA Suite</span>
         </a>
       </nav>
 
@@ -226,10 +228,10 @@
 
           <!-- Shopkeeper Profile Summary -->
           <div class="profile-pill">
-            <div class="profile-avatar">KR</div>
+            <div class="profile-avatar" id="top-profile-avatar">AG</div>
             <div class="profile-info">
-              <span class="profile-name">Karthik R.</span>
-              <span class="profile-shop" data-i18n="shopName">Karthik Kirana Store</span>
+              <span class="profile-name" id="top-proprietor-name">Jeevan</span>
+              <span class="profile-shop" id="top-shop-name" data-i18n="shopName">Arjun Grocery Store</span>
             </div>
           </div>
         </div>
@@ -237,19 +239,6 @@
 
       <!-- Main Content Container -->
       <main class="content-container">
-
-        <!-- Demo Mode Notice Banner -->
-        <div class="demo-mode-alert" role="status">
-          <div class="demo-mode-content">
-            <span class="badge-pill warning" style="font-weight: 700;">DEMO MODE</span>
-            <span class="demo-mode-text">
-              <strong>Notice:</strong> Demo Mode — Backend APIs are not connected yet. Running with client-side sample data.
-            </span>
-          </div>
-          <div class="demo-mode-actions">
-            <span class="demo-tag">Sample Data Active</span>
-          </div>
-        </div>
 
         <!-- ==================================================================
              VIEW: DASHBOARD
@@ -300,23 +289,23 @@
           <!-- Quick Actions Bar -->
           <div class="quick-actions-bar">
             <span class="text-xs text-muted" style="font-weight: 600; text-transform: uppercase;">Quick Actions:</span>
-            <button class="quick-action-chip" onclick="window.location.hash='voice'">
+            <button class="quick-action-chip" id="chip-quick-voice" data-action="quick-voice">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
               <span>Speak in Tamil (தமிழில் பேசு)</span>
             </button>
-            <button class="quick-action-chip" onclick="window.location.hash='sales'">
+            <button class="quick-action-chip" id="chip-quick-bill" data-action="quick-bill">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
               <span>Create New Bill (புதிய பில்)</span>
             </button>
-            <button class="quick-action-chip" onclick="window.location.hash='inventory'">
+            <button class="quick-action-chip" id="chip-quick-product" data-action="quick-product">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
               <span>Add Product (பொருள் சேர்க்க)</span>
             </button>
-            <button class="quick-action-chip" onclick="window.location.hash='reports'">
+            <button class="quick-action-chip" id="chip-quick-reports" data-action="quick-reports">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
               <span>Daily Report (விற்பனை அறிக்கை)</span>
             </button>
-            <button class="quick-action-chip" onclick="window.location.hash='customers'">
+            <button class="quick-action-chip" id="chip-quick-customers" data-action="quick-customers">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
               <span>Customer Khata (கடன் கணக்கு)</span>
             </button>
@@ -333,14 +322,13 @@
                 </div>
               </div>
               <div class="kpi-value-row">
-                <span class="kpi-value" id="kpi-revenue">₹18,450</span>
+                <span class="kpi-value" id="kpi-revenue">₹0</span>
               </div>
               <div class="kpi-trend-row">
-                <span class="trend-badge up">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg>
-                  +12.4%
+                <span class="trend-badge neutral">
+                  0.0%
                 </span>
-                <span class="trend-subtext">vs yesterday</span>
+                <span class="trend-subtext">today's sales</span>
               </div>
             </div>
 
@@ -353,13 +341,10 @@
                 </div>
               </div>
               <div class="kpi-value-row">
-                <span class="kpi-value" id="kpi-sales">142</span>
+                <span class="kpi-value" id="kpi-sales">0</span>
               </div>
               <div class="kpi-trend-row">
-                <span class="trend-badge up">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg>
-                  +8.1%
-                </span>
+                <span class="trend-badge neutral">0</span>
                 <span class="trend-subtext">completed bills</span>
               </div>
             </div>
@@ -373,14 +358,11 @@
                 </div>
               </div>
               <div class="kpi-value-row">
-                <span class="kpi-value" id="kpi-orders">38</span>
+                <span class="kpi-value" id="kpi-orders">0</span>
               </div>
               <div class="kpi-trend-row">
-                <span class="trend-badge up">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg>
-                  +5.2%
-                </span>
-                <span class="trend-subtext">pre-packed orders</span>
+                <span class="trend-badge neutral">0</span>
+                <span class="trend-subtext">orders today</span>
               </div>
             </div>
 
@@ -393,11 +375,11 @@
                 </div>
               </div>
               <div class="kpi-value-row">
-                <span class="kpi-value text-warning" id="kpi-low-stock">6</span>
+                <span class="kpi-value text-warning" id="kpi-low-stock">0</span>
               </div>
               <div class="kpi-trend-row">
-                <span class="trend-badge warning">Action Needed</span>
-                <span class="trend-subtext">re-order soon</span>
+                <span class="trend-badge neutral">OK</span>
+                <span class="trend-subtext">all stocked</span>
               </div>
             </div>
 
@@ -410,11 +392,11 @@
                 </div>
               </div>
               <div class="kpi-value-row">
-                <span class="kpi-value" id="kpi-products">428</span>
+                <span class="kpi-value" id="kpi-products">0</span>
               </div>
               <div class="kpi-trend-row">
-                <span class="trend-badge neutral">12 Categories</span>
-                <span class="trend-subtext">active catalog</span>
+                <span class="trend-badge neutral">0</span>
+                <span class="trend-subtext">active products</span>
               </div>
             </div>
           </div>
@@ -545,6 +527,94 @@
         <section id="view-voice" class="view-pane">
           <div class="voice-interface-wrapper">
 
+            <!-- Dedicated Live Voice Mode Control Banner -->
+            <div class="live-mode-banner" id="live-mode-banner">
+              <div class="live-mode-top">
+                <div class="live-mode-info">
+                  <div class="live-status-pill idle" id="live-status-pill">
+                    <span class="live-dot-pulse"></span>
+                    <span id="live-status-label">LIVE CONVERSATION: IDLE</span>
+                  </div>
+                  <div class="live-mode-title-wrap">
+                    <h3 class="live-mode-heading">Continuous Live Voice Conversation Mode</h3>
+                    <p class="live-mode-sub">Hands-free Kirana shop assistant: Speak naturally in Tamil/Tanglish &bull; Assistant Listens &bull; Understands with Gemini &bull; Speaks with Gnani Timbre &bull; Resumes Listening Automatically.</p>
+                  </div>
+                </div>
+                <div class="live-mode-cta">
+                  <button class="btn-live-toggle" id="btn-live-mode-toggle" aria-label="Toggle Live Voice Mode">
+                    <span class="live-mic-icon">
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+                    </span>
+                    <span id="btn-live-mode-text">Start Live Conversation (நேரடி உரையாடல் தொடங்கு)</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Live Conversation State Flow Pill Steps -->
+              <div class="live-flow-indicator" id="live-flow-indicator">
+                <div class="flow-step active" data-flow-step="idle" id="flow-step-idle">
+                  <span class="step-num">1</span>
+                  <span class="step-label">Ready / Idle</span>
+                </div>
+                <div class="flow-arrow">&rarr;</div>
+                <div class="flow-step" data-flow-step="listening" id="flow-step-listening">
+                  <span class="step-num">
+                    <span class="step-pulse"></span>
+                  </span>
+                  <span class="step-label">Listening (VAD)</span>
+                </div>
+                <div class="flow-arrow">&rarr;</div>
+                <div class="flow-step" data-flow-step="understanding" id="flow-step-understanding">
+                  <span class="step-num">AI</span>
+                  <span class="step-label">Gemini & STT</span>
+                </div>
+                <div class="flow-arrow">&rarr;</div>
+                <div class="flow-step" data-flow-step="speaking" id="flow-step-speaking">
+                  <span class="step-num">🔊</span>
+                  <span class="step-label">Speaking (Timbre)</span>
+                </div>
+              </div>
+
+              <!-- Live Action Controls & Audio Visualizer Row -->
+              <div class="live-controls-row" id="live-controls-row">
+                <!-- Audio Visualizer Level Meter -->
+                <div class="live-audio-meter-wrap" title="Real-time Microphone Audio Energy">
+                  <span class="meter-label">Mic Input Level:</span>
+                  <div class="live-audio-meter" id="live-audio-meter">
+                    <div class="live-meter-bar" style="height: 12%;"></div>
+                    <div class="live-meter-bar" style="height: 12%;"></div>
+                    <div class="live-meter-bar" style="height: 12%;"></div>
+                    <div class="live-meter-bar" style="height: 12%;"></div>
+                    <div class="live-meter-bar" style="height: 12%;"></div>
+                    <div class="live-meter-bar" style="height: 12%;"></div>
+                    <div class="live-meter-bar" style="height: 12%;"></div>
+                    <div class="live-meter-bar" style="height: 12%;"></div>
+                    <div class="live-meter-bar" style="height: 12%;"></div>
+                    <div class="live-meter-bar" style="height: 12%;"></div>
+                    <div class="live-meter-bar" style="height: 12%;"></div>
+                    <div class="live-meter-bar" style="height: 12%;"></div>
+                  </div>
+                  <span class="meter-val" id="live-meter-val">0%</span>
+                </div>
+
+                <!-- Quick Hands-free Control Actions -->
+                <div class="live-quick-actions">
+                  <button class="btn btn-sm btn-outline live-action-btn" id="btn-live-mute" title="Mute/Unmute Microphone">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+                    <span id="btn-live-mute-text">Mute Mic</span>
+                  </button>
+                  <button class="btn btn-sm btn-outline live-action-btn" id="btn-live-stop-speech" title="Interrupt / Stop Speaking Assistant" disabled>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" x2="17" y1="9" y2="15"/><line x1="17" x2="23" y1="9" y2="15"/></svg>
+                    <span>Interrupt Assistant</span>
+                  </button>
+                  <button class="btn btn-sm btn-ghost text-danger live-action-btn" id="btn-live-cancel-action" title="Cancel ongoing pending confirmation" disabled>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" x2="9" y1="9" y2="15"/><line x1="9" x2="15" y1="9" y2="15"/></svg>
+                    <span>Cancel Action</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <!-- Hero Stage Card -->
             <div class="voice-stage-card state-idle" id="voice-stage-card">
               <!-- Top Row Controls -->
@@ -557,12 +627,16 @@
                   <p class="voice-stage-subtitle">Manage your shop operations using natural Tamil or Tanglish voice commands.</p>
                 </div>
                 <div class="voice-header-badges">
+                  <div class="lang-selector-group" role="group" aria-label="Voice Interaction Mode" style="margin-right: 4px;">
+                    <button class="lang-chip active" id="btn-mode-push" data-interaction-mode="push" title="Click mic to start/stop">Push-to-Talk</button>
+                    <button class="lang-chip" id="btn-mode-continuous" data-interaction-mode="continuous" title="Automatic continuous multi-turn dialogue">Continuous (தொடர் உரையாடல்)</button>
+                  </div>
                   <div class="lang-selector-group" role="group" aria-label="Voice Language Preference">
                     <button class="lang-chip active" data-voice-lang="ta">Tamil</button>
                     <button class="lang-chip" data-voice-lang="tanglish">Tanglish</button>
                     <button class="lang-chip" data-voice-lang="en">English</button>
                   </div>
-                  <span class="badge-pill warning" style="font-weight: 700;">DEMO MODE</span>
+                  <span class="badge-pill success" id="voice-mode-badge" style="font-weight: 700; background: rgba(16, 185, 129, 0.2); color: #059669; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem;">LIVE AI ACTIVE</span>
                 </div>
               </div>
 
@@ -614,22 +688,8 @@
                 </div>
               </div>
 
-              <div class="voice-hero-notice">
-                Browser audio recorded for demo. Gnani Prisma v2.5 STT & Timbre v2.5 TTS integration scheduled for backend phase.
-              </div>
-            </div>
-
-            <!-- Demo Voice Commands Selector -->
-            <div class="demo-commands-card">
-              <div class="demo-commands-header">
-                <div class="demo-commands-title">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
-                  <span>Quick Demo Voice Commands (பரிந்துரைக்கப்பட்ட கட்டளைகள்)</span>
-                </div>
-                <span class="text-2xs text-muted">Click any command to test workflow</span>
-              </div>
-              <div class="demo-command-chips-grid" id="demo-commands-grid">
-                <!-- Populated by voice.js -->
+              <div class="voice-hero-notice" id="voice-hero-notice">
+                Voice Pipeline Active • Click microphone to speak in Tamil, Tanglish, or English
               </div>
             </div>
 
@@ -676,6 +736,45 @@
               </div>
             </div>
 
+            <!-- Dedicated Live Multi-Product Bill Preview Card -->
+            <div class="live-bill-card" id="live-bill-preview-card" style="display: none;">
+              <div class="live-bill-header">
+                <div class="bill-title-wrap">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+                  <h4 class="bill-title">Live Voice Customer Invoice (பில் விவரம்)</h4>
+                </div>
+                <span class="badge-pill warning" id="live-bill-badge">Awaiting Voice Confirmation</span>
+              </div>
+              <div class="live-bill-body">
+                <div class="table-wrapper" style="border: none; margin: 0;">
+                  <table class="data-table" id="live-bill-items-table">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Item Name</th>
+                        <th>Quantity</th>
+                        <th>Unit Rate</th>
+                        <th>Line Total (₹)</th>
+                        <th>Stock Projection</th>
+                      </tr>
+                    </thead>
+                    <tbody id="live-bill-tbody">
+                      <!-- Dynamically populated by voice.js -->
+                    </tbody>
+                  </table>
+                </div>
+                <div class="live-bill-summary-bar">
+                  <div class="bill-notes">
+                    <span class="bill-say-hint">Say aloud: <strong>"Aama"</strong> or <strong>"Confirm pannunga"</strong> to record sale, or <strong>"Cancel"</strong> to discard.</span>
+                  </div>
+                  <div class="bill-totals">
+                    <span class="bill-total-label">Grand Total:</span>
+                    <span class="bill-total-amount" id="live-bill-grand-total">₹0.00</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <!-- Action Confirmation Card (Visible when State is 'confirmation') -->
             <div class="confirmation-card" id="voice-confirmation-card">
               <div class="confirmation-header">
@@ -688,7 +787,7 @@
 
               <div class="confirmation-details-box">
                 <div class="confirmation-summary-text" id="confirmation-summary-text">
-                  Action: Add Stock | Product: Ponni Boiled Rice | Quantity: 5 kg
+                  No pending voice action. Speak or select a command.
                 </div>
 
                 <!-- Inline Edit Form -->
@@ -702,11 +801,11 @@
                   </div>
                   <div class="form-group" style="margin-bottom: 0;">
                     <label class="form-label">Product Name</label>
-                    <input type="text" class="form-input" id="edit-product-name" value="Ponni Boiled Rice">
+                    <input type="text" class="form-input" id="edit-product-name" placeholder="Product name">
                   </div>
                   <div class="form-group" style="margin-bottom: 0;">
                     <label class="form-label">Quantity</label>
-                    <input type="number" class="form-input" id="edit-quantity" value="5" min="1">
+                    <input type="number" class="form-input" id="edit-quantity" value="1" min="1">
                   </div>
                   <div class="form-group" style="margin-bottom: 0;">
                     <label class="form-label">Unit</label>
@@ -714,6 +813,7 @@
                       <option value="kg">kg (கிலோ)</option>
                       <option value="gram">gram (கிராம்)</option>
                       <option value="litre">litre (லிட்டர்)</option>
+                      <option value="bottle">bottle (பாட்டில்)</option>
                       <option value="bags">bags (மூட்டை)</option>
                       <option value="packets">packets (பாக்கெட்)</option>
                     </select>
@@ -760,7 +860,7 @@
                     <span>Stop</span>
                   </button>
                 </div>
-                <span class="tts-status-sub" id="tts-voice-notice">Browser voice demo — Gnani Timbre integration pending.</span>
+                <span class="tts-status-sub" id="tts-voice-notice">Assistant Spoken Voice Engine Ready (Tamil / English)</span>
               </div>
             </div>
 
@@ -794,10 +894,6 @@
                 <p class="inventory-main-subtitle">Manage products, stock levels, pricing, and inventory movements.</p>
               </div>
               <div class="inventory-header-actions">
-                <button class="btn btn-ghost text-muted btn-sm" id="inv-btn-reset-demo" title="Reset to default demo data">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-                  <span>Reset Demo Data</span>
-                </button>
                 <button class="btn btn-outline btn-sm" id="inv-btn-export-csv" title="Export filtered inventory to CSV">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
                   <span>Export CSV</span>
@@ -964,15 +1060,101 @@
               <div class="inventory-header-titles">
                 <h2 class="sales-main-title">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
-                  <span>Sales & Orders (விற்பனை மற்றும் பில்கள்)</span>
+                  <span>Billing Counter (பில்லிங் மற்றும் விற்பனை)</span>
                 </h2>
-                <p class="sales-main-subtitle">Record counter sales, monitor invoices, and print receipts.</p>
+                <p class="sales-main-subtitle">Build customer bills live, manage checkout items, and confirm sales.</p>
               </div>
               <div class="inventory-header-actions">
+                <a href="#bills" class="btn btn-outline btn-sm" data-view="bills">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                  <span>View Bill History</span>
+                </a>
                 <button class="btn btn-primary btn-sm" id="sales-btn-open-new">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
-                  <span>New Sale (புதிய விற்பனை)</span>
+                  <span>New Sale (+ புதிய விற்பனை)</span>
                 </button>
+              </div>
+            </div>
+
+            <!-- Dedicated Current Bill (தற்போதைய பில்) Panel -->
+            <div class="card current-bill-panel" id="current-bill-panel" style="margin-bottom: 1.5rem; border: 1.5px solid rgba(59, 130, 246, 0.4); background: #1E293B;">
+              <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.25rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <div class="kpi-icon-wrapper kpi-icon-blue" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: rgba(59, 130, 246, 0.15); color: #3B82F6;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+                  </div>
+                  <div>
+                    <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700; color: #F8FAFC;">Current Bill (தற்போதைய பில்)</h3>
+                    <span style="font-size: 0.8rem; color: #94A3B8;">Ref: <strong id="current-bill-ref" style="color: #60A5FA;">BILL-20261109-001</strong> &bull; Status: <span id="current-bill-status-badge" class="badge-pill warning">Active Cart</span></span>
+                  </div>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                  <button class="btn btn-sm btn-outline" id="btn-bill-add-product" title="Add Product to Current Bill" style="font-size: 0.8rem;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
+                    <span>+ Add Product</span>
+                  </button>
+                  <button class="btn btn-sm btn-ghost text-danger" id="btn-bill-cancel-all" title="Clear Bill" style="font-size: 0.8rem; color: #EF4444;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                    <span>Cancel Bill</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="card-body" style="padding: 1.25rem;">
+                <div class="table-wrapper" style="border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; overflow-x: auto;">
+                  <table class="data-table" id="current-bill-table" style="margin: 0; width: 100%;">
+                    <thead>
+                      <tr>
+                        <th style="width: 50px;">#</th>
+                        <th>Product Name (பொருள் பெயர்)</th>
+                        <th style="width: 140px;">Quantity & Unit</th>
+                        <th style="width: 120px;">Rate (₹)</th>
+                        <th style="width: 130px;">Amount (₹)</th>
+                        <th style="width: 80px; text-align: center;">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody id="current-bill-tbody">
+                      <!-- Rendered dynamically by sales.js -->
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Empty State if Cart is Empty -->
+                <div id="current-bill-empty" style="display: none; padding: 2rem; text-align: center; color: #94A3B8;">
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity: 0.5; margin-bottom: 0.5rem;"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+                  <p style="margin: 0; font-size: 0.95rem;">No items in current bill cart.</p>
+                  <p style="margin: 0.25rem 0 0; font-size: 0.8rem;">Add products using <strong>+ Add Product</strong> or speak in <strong>Voice Assistant</strong> ("Customer-ku 2 kg rice, 1 kg sugar bill podu").</p>
+                </div>
+
+                <!-- Summary Box & Action Row -->
+                <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; margin-top: 1.25rem; gap: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+                  <div style="display: flex; gap: 0.75rem; align-items: center;">
+                    <label style="font-size: 0.85rem; font-weight: 600; color: #94A3B8;">Payment Method:</label>
+                    <select id="current-bill-payment-method" class="form-input" style="width: auto; padding: 0.4rem 0.8rem; font-size: 0.85rem; background: #0F172A; color: #F8FAFC; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 6px;">
+                      <option value="CASH">Cash (ரொக்கம்)</option>
+                      <option value="UPI">UPI / GPay (ஆன்லைன்)</option>
+                      <option value="CARD">Card (கார்டு)</option>
+                      <option value="CREDIT">Khata Credit (கடன்)</option>
+                    </select>
+                  </div>
+
+                  <div style="display: flex; align-items: flex-end; gap: 2rem;">
+                    <div style="text-align: right; font-size: 0.9rem;">
+                      <div style="color: #94A3B8; margin-bottom: 0.25rem;">Subtotal: <span id="current-bill-subtotal" style="font-weight: 600; color: #F8FAFC;">₹0.00</span></div>
+                      <div style="color: #94A3B8; margin-bottom: 0.25rem;">Tax / Discount: <span style="font-weight: 600; color: #F8FAFC;">₹0.00</span></div>
+                      <div style="font-size: 1.25rem; font-weight: 700; color: #10B981;">Grand Total: <span id="current-bill-grand-total">₹0.00</span></div>
+                    </div>
+
+                    <div style="display: flex; gap: 0.75rem;">
+                      <button class="btn btn-outline" id="btn-bill-cancel-cart">Cancel Bill</button>
+                      <button class="btn btn-success" id="btn-bill-confirm-and-pay" style="min-width: 190px; font-weight: 700; background: #10B981; color: #FFFFFF; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; cursor: pointer;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>Confirm & Generate Bill</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
               </div>
             </div>
 
@@ -1121,6 +1303,162 @@
         </section>
 
         <!-- ==================================================================
+             VIEW: BILL HISTORY & INVOICES (பில் வரலாறு மற்றும் ரசீதுகள்)
+             ================================================================== -->
+        <section id="view-bills" class="view-pane">
+          <div class="sales-page-wrapper">
+
+            <!-- Bill History Header -->
+            <div class="sales-header-row">
+              <div class="inventory-header-titles">
+                <h2 class="sales-main-title">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                  <span>Bill History & Invoices (பில் வரலாறு மற்றும் ரசீதுகள்)</span>
+                </h2>
+                <p class="sales-main-subtitle">Complete persistent register of customer invoices, items breakdown, and printable receipts.</p>
+              </div>
+              <div class="inventory-header-actions">
+                <button class="btn btn-primary btn-sm" id="bills-btn-create-bill">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
+                  <span>New Customer Bill (+ புதிய பில்)</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 4 Bill History KPI Cards -->
+            <div class="sales-kpi-grid">
+              <div class="sales-kpi-card">
+                <div class="kpi-top-row">
+                  <span class="kpi-label">Today's Invoices</span>
+                  <div class="kpi-icon-wrapper kpi-icon-blue">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+                  </div>
+                </div>
+                <div class="kpi-value-row">
+                  <span class="kpi-value text-primary" id="bills-kpi-today-count">0</span>
+                </div>
+                <div class="kpi-trend-row">
+                  <span class="trend-badge up">Today</span>
+                  <span class="trend-subtext">bills generated</span>
+                </div>
+              </div>
+
+              <div class="sales-kpi-card">
+                <div class="kpi-top-row">
+                  <span class="kpi-label">Today's Revenue</span>
+                  <div class="kpi-icon-wrapper kpi-icon-green">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                  </div>
+                </div>
+                <div class="kpi-value-row">
+                  <span class="kpi-value text-success" id="bills-kpi-today-revenue">₹0</span>
+                </div>
+                <div class="kpi-trend-row">
+                  <span class="trend-badge up">Counter</span>
+                  <span class="trend-subtext">intake today</span>
+                </div>
+              </div>
+
+              <div class="sales-kpi-card">
+                <div class="kpi-top-row">
+                  <span class="kpi-label">Total Historical Bills</span>
+                  <div class="kpi-icon-wrapper kpi-icon-purple">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+                  </div>
+                </div>
+                <div class="kpi-value-row">
+                  <span class="kpi-value" id="bills-kpi-total-bills">0</span>
+                </div>
+                <div class="kpi-trend-row">
+                  <span class="trend-badge neutral">All-time</span>
+                  <span class="trend-subtext">stored in database</span>
+                </div>
+              </div>
+
+              <div class="sales-kpi-card">
+                <div class="kpi-top-row">
+                  <span class="kpi-label">Average Bill Amount</span>
+                  <div class="kpi-icon-wrapper kpi-icon-amber">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+                  </div>
+                </div>
+                <div class="kpi-value-row">
+                  <span class="kpi-value" id="bills-kpi-avg-amount">₹0</span>
+                </div>
+                <div class="kpi-trend-row">
+                  <span class="trend-badge neutral">Avg ticket</span>
+                  <span class="trend-subtext">per customer transaction</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Toolbar: Search & Multi-Filters -->
+            <div class="sales-toolbar">
+              <div class="filter-controls-group">
+                <div class="search-input-wrap">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                  <input type="text" class="form-input" id="bills-search-input" placeholder="Search by Bill #, product, or customer...">
+                </div>
+
+                <select class="filter-select" id="bills-date-filter">
+                  <option value="all">All Dates (அனைத்து நாட்களும்)</option>
+                  <option value="today">Today (இன்று)</option>
+                  <option value="yesterday">Yesterday (நேற்று)</option>
+                  <option value="week">Past 7 Days (கடந்த 7 நாட்கள்)</option>
+                </select>
+
+                <select class="filter-select" id="bills-payment-filter">
+                  <option value="all">All Payment Methods</option>
+                  <option value="CASH">Cash (ரொக்கம்)</option>
+                  <option value="UPI">UPI / GPay (ஆன்லைன்)</option>
+                  <option value="CARD">Card (கார்டு)</option>
+                  <option value="CREDIT">Khata Credit (கடன்)</option>
+                </select>
+
+                <select class="filter-select" id="bills-sort-filter">
+                  <option value="date-desc">Sort: Date (Newest first)</option>
+                  <option value="date-asc">Sort: Date (Oldest first)</option>
+                  <option value="amount-desc">Sort: Amount (High to Low)</option>
+                  <option value="amount-asc">Sort: Amount (Low to High)</option>
+                </select>
+
+                <button class="btn btn-sm btn-ghost" id="bills-btn-reset-filters" title="Reset filters">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                  <span>Reset</span>
+                </button>
+              </div>
+
+              <span class="badge-pill neutral" id="bills-table-count-badge">0 bills</span>
+            </div>
+
+            <!-- Bill History Records Table -->
+            <div class="card" style="overflow: hidden;">
+              <div class="table-wrapper" style="border: none; border-radius: 0;">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Bill / Invoice #</th>
+                      <th>Date & Time</th>
+                      <th>Customer Name</th>
+                      <th>Items Summary</th>
+                      <th>Total Items</th>
+                      <th>Grand Total</th>
+                      <th>Payment</th>
+                      <th>Status</th>
+                      <th style="text-align: right;">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="bills-table-body">
+                    <!-- Populated dynamically by bills.js -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ==================================================================
              MODALS: INVENTORY MANAGEMENT
              ================================================================== -->
         <!-- Add Product Modal -->
@@ -1170,6 +1508,7 @@
                       <option value="g">g (கிராம்)</option>
                       <option value="litre">litre (லிட்டர்)</option>
                       <option value="ml">ml (மில்லி)</option>
+                      <option value="bottle">bottle (பாட்டில்)</option>
                       <option value="piece">piece (துண்டு)</option>
                       <option value="packet">packet (பாக்கெட்)</option>
                       <option value="box">box (பெட்டி)</option>
@@ -1178,11 +1517,11 @@
                   </div>
                   <div class="form-group">
                     <label class="form-label">Purchase Price (₹) *</label>
-                    <input type="number" class="form-input" id="add-product-purchase-price" value="40" min="0" step="0.5" required>
+                    <input type="number" class="form-input" id="add-product-purchase-price" placeholder="0" min="0" step="0.5" required>
                   </div>
                   <div class="form-group">
                     <label class="form-label">Selling Price (₹) *</label>
-                    <input type="number" class="form-input" id="add-product-selling-price" value="50" min="0" step="0.5" required>
+                    <input type="number" class="form-input" id="add-product-selling-price" placeholder="0" min="0" step="0.5" required>
                   </div>
                   <div class="form-group modal-form-full">
                     <label class="form-label">Minimum Stock Alert Threshold *</label>
@@ -1251,6 +1590,7 @@
                       <option value="g">g (கிராம்)</option>
                       <option value="litre">litre (லிட்டர்)</option>
                       <option value="ml">ml (மில்லி)</option>
+                      <option value="bottle">bottle (பாட்டில்)</option>
                       <option value="piece">piece (துண்டு)</option>
                       <option value="packet">packet (பாக்கெட்)</option>
                       <option value="box">box (பெட்டி)</option>
@@ -1296,7 +1636,7 @@
               </div>
               <h4 style="font-size: 1.125rem; font-weight: 700; margin-bottom: 0.5rem;">Are you sure?</h4>
               <p style="font-size: 0.875rem; color: var(--color-text-secondary); margin-bottom: 1rem;">
-                This will delete <strong id="delete-product-name-display">Product</strong> from your store catalog. This demo action cannot be undone.
+                This will delete <strong id="delete-product-name-display">Product</strong> from your store catalog. This action cannot be undone.
               </p>
             </div>
             <div class="modal-footer" style="justify-content: center;">
@@ -1472,11 +1812,11 @@
               </div>
 
               <div style="font-size: 0.75rem; color: var(--color-text-secondary); text-align: center;">
-                ⚡ Demo Mode: Confirming will deduct inventory and add a new transaction to the sales register.
+                ⚡ Kirana Store Register: Confirming will deduct inventory and record a new transaction in SQLite.
               </div>
             </div>
             <div class="modal-footer">
-              <button class="btn btn-outline" data-close-modal>Back to Edit</button>
+              <button class="btn btn-outline" id="btn-back-to-edit-sale">Back to Edit</button>
               <button class="btn btn-success" id="btn-final-confirm-sale">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
                 <span>Confirm & Record Sale</span>
@@ -1708,19 +2048,41 @@
                   </div>
                   <div>
                     <label class="form-label">Proprietor Name</label>
-                    <input type="text" id="set-owner-name" class="form-control">
+                    <input type="text" id="set-owner-name" class="form-control" required>
                   </div>
                   <div>
                     <label class="form-label">Contact Phone</label>
-                    <input type="text" id="set-phone" class="form-control">
+                    <input type="text" id="set-phone" class="form-control" placeholder="+91 98401 23456" required>
+                  </div>
+                  <div>
+                    <label class="form-label">WhatsApp Number</label>
+                    <input type="text" id="set-whatsapp" class="form-control" placeholder="+91 98401 23456">
+                  </div>
+                  <div>
+                    <label class="form-label">Store Email</label>
+                    <input type="email" id="set-email" class="form-control" placeholder="shop@kirana.in">
                   </div>
                   <div style="grid-column: 1 / -1;">
                     <label class="form-label">Physical Store Address</label>
                     <input type="text" id="set-address" class="form-control">
                   </div>
                   <div>
-                    <label class="form-label">GSTIN / Tax ID</label>
-                    <input type="text" id="set-gstin" class="form-control">
+                    <label class="form-label">GSTIN / Tax ID (Optional)</label>
+                    <input type="text" id="set-gstin" class="form-control" placeholder="33ABCDE1234F1Z5">
+                  </div>
+                  <div>
+                    <label class="form-label">Operating Currency</label>
+                    <select id="set-currency" class="form-control">
+                      <option value="INR">INR (₹ - Indian Rupee)</option>
+                      <option value="USD">USD ($ - US Dollar)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="form-label">Preferred Interface Language</label>
+                    <select id="set-pref-lang" class="form-control">
+                      <option value="ta">Tamil (தமிழ்)</option>
+                      <option value="en">English</option>
+                    </select>
                   </div>
                   <div>
                     <label class="form-label">Voice Assistant Language</label>
@@ -1737,6 +2099,14 @@
                   <div>
                     <label class="form-label">Default Low Stock Alert Threshold</label>
                     <input type="number" id="set-threshold" class="form-control" step="1" min="1">
+                  </div>
+                  <div style="grid-column: 1 / -1; background: #F1F5F9; border: 1px dashed #CBD5E1; border-radius: 8px; padding: 1rem;">
+                    <label class="form-label" style="font-weight: 700; color: #1E293B;">FastAPI Backend Deployment URL (Vercel / Cloud)</label>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.25rem;">
+                      <input type="text" id="set-backend-api-url" class="form-control" placeholder="https://tamilvoice-backend.onrender.com/api" style="font-family: monospace;">
+                      <button type="button" id="btn-save-backend-url" class="btn btn-secondary" style="white-space:nowrap;">Connect & Save</button>
+                    </div>
+                    <span style="font-size: 0.75rem; color: #64748B; margin-top: 0.25rem; display: block;">Used by Vercel frontend to reach your deployed FastAPI backend (Render, Railway, Fly.io). Defaults to local backend when blank.</span>
                   </div>
                 </div>
                 <div style="display:flex; justify-content:flex-end; gap:0.75rem;">
@@ -1758,7 +2128,7 @@
                 <span class="badge badge-primary" style="font-size:0.75rem; letter-spacing:0.05em;">SYSTEM VALIDATION LAB</span>
                 <span id="test-overall-badge" class="test-status-badge status-not-run">READY TO RUN</span>
               </div>
-              <h2 style="font-size:1.35rem; font-weight:800; color:#0F172A; margin:0;">End-to-End Test & Demo Validation Suite</h2>
+              <h2 style="font-size:1.35rem; font-weight:800; color:#0F172A; margin:0;">End-to-End System & API Verification Suite</h2>
               <p id="current-mode-label" style="font-size:0.875rem; color:#64748B; margin-top:0.25rem; margin-bottom:0;">Mode A — Mock / Dry Run (0 Credits Consumed)</p>
             </div>
 
@@ -1766,7 +2136,7 @@
             <div class="mode-selector-tabs">
               <button class="mode-tab-btn active" data-testing-mode="mock">Mode A (Mock / 0 Credits)</button>
               <button class="mode-tab-btn" data-testing-mode="real">Mode B (Real API Test)</button>
-              <button class="mode-tab-btn" data-testing-mode="demo">Mode C (Demo Sandbox)</button>
+              <button class="mode-tab-btn" data-testing-mode="demo">Mode C (Sandbox)</button>
             </div>
           </div>
 
@@ -1865,6 +2235,10 @@
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
       <span>Sales</span>
     </a>
+    <a href="#bills" class="mobile-nav-item" data-view="bills">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      <span>Bills</span>
+    </a>
     <a href="#reports" class="mobile-nav-item" data-view="reports">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
       <span>Reports</span>
@@ -1875,6 +2249,7 @@
   <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
   <!-- Main ES6 JavaScript Entry Point -->
+  <script src="js/env.js"></script>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>

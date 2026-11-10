@@ -11,55 +11,38 @@ export const Dashboard = {
   chartInstance: null,
   currentPeriod: 'daily',
 
-  // Mock Realistic Data
+  // Live Store Data (Zero-based initialization)
   data: {
     kpis: {
-      todayRevenue: 18450,
-      revenueChange: '+12.4%',
-      totalSales: 142,
-      salesChange: '+8.1%',
-      ordersToday: 38,
-      ordersChange: '+5.2%',
-      lowStockCount: 6,
-      totalProducts: 428
+      todayRevenue: 0,
+      revenueChange: '0.0%',
+      totalSales: 0,
+      salesChange: '0.0%',
+      ordersToday: 0,
+      ordersChange: '0.0%',
+      lowStockCount: 0,
+      totalProducts: 0
     },
     analytics: {
       daily: {
         labels: ['8 AM', '10 AM', '12 PM', '2 PM', '4 PM', '6 PM', '8 PM', '10 PM'],
-        revenue: [1200, 2800, 4100, 2200, 3100, 5600, 7200, 3450],
-        orders: [8, 19, 28, 14, 22, 39, 48, 24]
+        revenue: [0, 0, 0, 0, 0, 0, 0, 0],
+        orders: [0, 0, 0, 0, 0, 0, 0, 0]
       },
       weekly: {
         labels: ['Mon (திங்கள்)', 'Tue (செவ்வாய்)', 'Wed (புதன்)', 'Thu (வியாழன்)', 'Fri (வெள்ளி)', 'Sat (சனி)', 'Sun (ஞாயிறு)'],
-        revenue: [14200, 16800, 15300, 17900, 19400, 24800, 22100],
-        orders: [95, 112, 104, 118, 134, 168, 150]
+        revenue: [0, 0, 0, 0, 0, 0, 0],
+        orders: [0, 0, 0, 0, 0, 0, 0]
       },
       monthly: {
         labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-        revenue: [98000, 112400, 105600, 126500],
-        orders: [720, 840, 790, 910]
+        revenue: [0, 0, 0, 0],
+        orders: [0, 0, 0, 0]
       }
     },
-    lowStock: [
-      { id: 'PRD-01', nameEn: 'Ponni Boiled Rice 25kg', nameTa: 'பொன்னி புழுங்கல் அரிசி 25kg', category: 'Rice', stock: 2, minStock: 8, unit: 'bags', status: 'critical' },
-      { id: 'PRD-02', nameEn: 'Gold Winner Sunflower Oil 1L', nameTa: 'கோல்ட் வின்னர் எண்ணெய் 1L', category: 'Oil', stock: 4, minStock: 15, unit: 'pkts', status: 'warning' },
-      { id: 'PRD-03', nameEn: 'Aachi Chilli Powder 100g', nameTa: 'ஆச்சி மிளகாய் தூள் 100g', category: 'Spices', stock: 6, minStock: 20, unit: 'pkts', status: 'warning' },
-      { id: 'PRD-04', nameEn: 'Tata Iodized Salt 1kg', nameTa: 'டாடா உப்பு 1kg', category: 'Grocery', stock: 3, minStock: 12, unit: 'pkts', status: 'critical' },
-      { id: 'PRD-05', nameEn: 'Premium Toor Dhal', nameTa: 'முதல் தர துவரம் பருப்பு', category: 'Dhal', stock: 5, minStock: 18, unit: 'kg', status: 'warning' }
-    ],
-    recentTransactions: [
-      { id: 'KB-1089', itemsEn: 'Ponni Rice 25kg (1 bag)', itemsTa: 'பொன்னி அரிசி 25kg (1 மூட்டை)', amount: 1450, time: '10 mins ago', status: 'completed' },
-      { id: 'KB-1088', itemsEn: 'Sunflower Oil 2L + Tata Salt 1kg', itemsTa: 'சூரியகாந்தி எண்ணெய் 2L + உப்பு 1kg', amount: 320, time: '24 mins ago', status: 'completed' },
-      { id: 'KB-1087', itemsEn: 'Aachi Chilli & Coriander Powder', itemsTa: 'ஆச்சி மிளகாய் & மல்லி தூள்', amount: 95, time: '38 mins ago', status: 'completed' },
-      { id: 'KB-1086', itemsEn: 'White Sugar 5kg + Toor Dhal 2kg', itemsTa: 'சீனி 5kg + துவரம் பருப்பு 2kg', amount: 460, time: '1 hour ago', status: 'completed' },
-      { id: 'KB-1085', itemsEn: 'Aashirvaad Whole Wheat Atta 5kg', itemsTa: 'ஆசீர்வாத் கோதுமை மாவு 5kg', amount: 295, time: '2 hours ago', status: 'completed' }
-    ],
-    topProducts: [
-      { rank: 1, nameEn: 'Ponni Boiled Rice 25kg', nameTa: 'பொன்னி புழுங்கல் அரிசி 25kg', sold: '34 bags', revenue: 49300 },
-      { rank: 2, nameEn: 'Gold Winner Sunflower Oil 1L', nameTa: 'கோல்ட் வின்னர் எண்ணெய் 1L', sold: '62 pkts', revenue: 8680 },
-      { rank: 3, nameEn: 'Tata Iodized Salt 1kg', nameTa: 'டாடா அயோடின் உப்பு 1kg', sold: '88 pkts', revenue: 2200 },
-      { rank: 4, nameEn: 'Premium Toor Dhal 1kg', nameTa: 'முதல் தர துவரம் பருப்பு', sold: '45 kg', revenue: 6750 }
-    ]
+    lowStock: [],
+    recentTransactions: [],
+    topProducts: []
   },
 
   init() {
@@ -89,9 +72,11 @@ export const Dashboard = {
     const todayStr = new Date().toISOString().slice(0, 10);
 
     let todayRev = 0;
+    let todayOrdersCount = 0;
     sales.forEach(s => {
       if (s.date && s.date.slice(0, 10) === todayStr) {
         todayRev += Number(s.total_amount) || 0;
+        todayOrdersCount++;
       }
     });
 
@@ -101,6 +86,7 @@ export const Dashboard = {
       if (status === 'Low Stock' || status === 'Out of Stock') {
         lowStockList.push({
           id: p.sku || `PRD-${p.id}`,
+          rawId: p.id,
           nameEn: p.name_en,
           nameTa: p.name_ta || p.name_en,
           category: p.category,
@@ -112,25 +98,50 @@ export const Dashboard = {
       }
     });
 
-    this.data.kpis.todayRevenue = todayRev || 18450;
-    this.data.kpis.totalSales = sales.length || 142;
+    this.data.kpis.todayRevenue = todayRev;
+    this.data.kpis.totalSales = sales.length;
+    this.data.kpis.ordersToday = todayOrdersCount;
     this.data.kpis.lowStockCount = lowStockList.length;
     this.data.kpis.totalProducts = products.length;
 
-    if (lowStockList.length) {
-      this.data.lowStock = lowStockList;
-    }
+    this.data.lowStock = lowStockList;
 
-    if (sales.length) {
-      this.data.recentTransactions = sales.slice(0, 5).map(s => ({
-        id: s.id,
-        itemsEn: `${s.product_name} (${s.quantity} ${s.unit})`,
-        itemsTa: `${s.product_name_ta || s.product_name} (${s.quantity} ${s.unit})`,
-        amount: s.total_amount,
-        time: Utils.formatTime(s.date),
-        status: s.status.toLowerCase()
+    this.data.recentTransactions = sales.slice(0, 5).map(s => ({
+      id: s.id,
+      itemsEn: `${s.product_name || 'Sale'} (${s.quantity || 1} ${s.unit || ''})`,
+      itemsTa: `${s.product_name_ta || s.product_name || 'விற்பனை'} (${s.quantity || 1} ${s.unit || ''})`,
+      amount: s.total_amount,
+      time: Utils.formatTime(s.date),
+      status: (s.status || 'completed').toLowerCase()
+    }));
+
+    // Derive top products from real sales
+    const productSalesMap = {};
+    sales.forEach(s => {
+      const key = s.product_name || 'Item';
+      if (!productSalesMap[key]) {
+        productSalesMap[key] = {
+          nameEn: s.product_name,
+          nameTa: s.product_name_ta || s.product_name,
+          soldCount: 0,
+          revenue: 0,
+          unit: s.unit || ''
+        };
+      }
+      productSalesMap[key].soldCount += Number(s.quantity) || 1;
+      productSalesMap[key].revenue += Number(s.total_amount) || 0;
+    });
+
+    this.data.topProducts = Object.values(productSalesMap)
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5)
+      .map((item, idx) => ({
+        rank: idx + 1,
+        nameEn: item.nameEn,
+        nameTa: item.nameTa,
+        sold: `${item.soldCount} ${item.unit}`.trim(),
+        revenue: item.revenue
       }));
-    }
 
     this.renderKPIs();
     this.renderLowStock();
@@ -142,35 +153,59 @@ export const Dashboard = {
     try {
       const liveData = await ApiService.getDashboard();
       if (liveData && liveData.kpis) {
-        this.data = { ...this.data, ...liveData };
+        this.data.kpis = {
+          todayRevenue: liveData.kpis.today_sales ?? 0,
+          revenueChange: `${(liveData.kpis.today_sales_change_pct || 0) >= 0 ? '+' : ''}${liveData.kpis.today_sales_change_pct || 0}%`,
+          totalSales: liveData.kpis.today_orders ?? 0,
+          salesChange: '0.0%',
+          ordersToday: liveData.kpis.today_orders ?? 0,
+          ordersChange: '0.0%',
+          lowStockCount: liveData.kpis.low_stock_count ?? 0,
+          totalProducts: liveData.kpis.total_products ?? 0
+        };
+
+        if (liveData.top_products && liveData.top_products.length > 0) {
+          this.data.topProducts = liveData.top_products.map((p, idx) => ({
+            rank: idx + 1,
+            nameEn: p.name,
+            nameTa: p.name_ta || p.name,
+            sold: `${p.units_sold} units`,
+            revenue: p.revenue
+          }));
+        }
+
+        if (liveData.hourly_sales && liveData.hourly_sales.length > 0) {
+          this.data.analytics.daily = {
+            labels: liveData.hourly_sales.map(h => h.hour),
+            revenue: liveData.hourly_sales.map(h => h.amount),
+            orders: liveData.hourly_sales.map(() => 0)
+          };
+        }
+
         this.renderKPIs();
         this.updateChartData();
         this.renderLowStock();
         this.renderRecentTransactions();
         this.renderTopProducts();
 
-        // Update Demo Notice banner if backend is live
-        const demoBanner = document.querySelector('.demo-mode-alert');
-        if (demoBanner) {
-          demoBanner.innerHTML = `
-            <div class="demo-mode-content">
+        // Live backend status indicator
+        const statusBanner = document.querySelector('.system-status-alert');
+        if (statusBanner) {
+          statusBanner.innerHTML = `
+            <div class="system-status-content">
               <span class="badge-pill success" style="font-weight: 700;">BACKEND LIVE</span>
-              <span class="demo-mode-text">
-                <strong>Connected:</strong> FastAPI + SQLite Database active at <a href="http://localhost:8000/docs" target="_blank" style="text-decoration: underline; color: #166534;">http://localhost:8000</a>.
+              <span class="system-status-text">
+                <strong>Connected:</strong> FastAPI + SQLite Database active at <a href="http://127.0.0.1:8000/docs" target="_blank" style="text-decoration: underline; color: #166534;">http://127.0.0.1:8000</a>.
               </span>
             </div>
-            <div class="demo-mode-actions">
-              <span class="demo-tag" style="background: #DCFCE7; color: #15803D; border-color: #86EFAC;">SQLite DB Synced</span>
-            </div>
           `;
-          demoBanner.style.backgroundColor = '#F0FDF4';
-          demoBanner.style.borderColor = '#BBF7D0';
-          demoBanner.style.color = '#166534';
+          statusBanner.style.backgroundColor = '#F0FDF4';
+          statusBanner.style.borderColor = '#BBF7D0';
+          statusBanner.style.color = '#166534';
         }
       }
     } catch (err) {
-      // Backend not running or still starting - keep realistic demo data
-      console.log('[Dashboard] Running with mock data (backend offline or loading).');
+      console.log('[Dashboard] Backend offline or loading, using local store data.');
     }
   },
 
@@ -188,12 +223,14 @@ export const Dashboard = {
     const ordersEl = document.getElementById('kpi-orders');
     const lowStockEl = document.getElementById('kpi-low-stock');
     const productsEl = document.getElementById('kpi-products');
+    const navBadge = document.getElementById('nav-inventory-badge');
 
     if (revEl) revEl.textContent = Utils.formatINR(this.data.kpis.todayRevenue);
     if (salesEl) salesEl.textContent = this.data.kpis.totalSales.toString();
     if (ordersEl) ordersEl.textContent = this.data.kpis.ordersToday.toString();
     if (lowStockEl) lowStockEl.textContent = this.data.kpis.lowStockCount.toString();
     if (productsEl) productsEl.textContent = this.data.kpis.totalProducts.toString();
+    if (navBadge) navBadge.textContent = this.data.kpis.totalProducts.toString();
   },
 
   initChart() {
@@ -297,6 +334,18 @@ export const Dashboard = {
 
     const currentLang = localStorage.getItem('tv_lang') || 'en';
 
+    if (!this.data.lowStock || !this.data.lowStock.length) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="5" style="text-align: center; padding: 2rem; color: var(--color-text-muted);">
+            <div style="font-size: 0.875rem;">${currentLang === 'ta' ? 'அனைத்து பொருட்களும் போதிய இருப்பில் உள்ளன.' : 'All products are adequately stocked.'}</div>
+            <div style="font-size: 0.75rem; margin-top: 4px;">${currentLang === 'ta' ? 'குறைந்த இருப்பு எச்சரிக்கைகள் இல்லை.' : 'No low stock alerts at this time.'}</div>
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
     tbody.innerHTML = this.data.lowStock.map(item => {
       const isCritical = item.status === 'critical';
       const badgeClass = isCritical ? 'danger' : 'warning';
@@ -321,7 +370,7 @@ export const Dashboard = {
             <span class="badge-pill ${badgeClass}">${badgeText}</span>
           </td>
           <td style="text-align: right;">
-            <button class="btn btn-xs btn-outline btn-restock" data-product-id="${item.id}" data-product-name="${displayName}">
+            <button class="btn btn-xs btn-outline btn-restock" data-product-id="${item.rawId || item.id}" data-product-name="${displayName}">
               ${currentLang === 'ta' ? 'இருப்பு சேர்க்க' : 'Restock'}
             </button>
           </td>
@@ -332,8 +381,17 @@ export const Dashboard = {
     // Attach Restock click handlers
     tbody.querySelectorAll('.btn-restock').forEach(btn => {
       btn.addEventListener('click', (e) => {
+        const prodId = btn.getAttribute('data-product-id');
         const prodName = btn.getAttribute('data-product-name');
         Utils.showToast('info', 'Stock Adjustment', `Opening restock modal for ${prodName}...`);
+        
+        // Navigate to inventory view and open adjust stock modal
+        window.location.hash = 'inventory';
+        if (window.Inventory && typeof window.Inventory.openAdjustModal === 'function') {
+          setTimeout(() => {
+            window.Inventory.openAdjustModal(prodId);
+          }, 150);
+        }
       });
     });
   },
@@ -343,6 +401,18 @@ export const Dashboard = {
     if (!tbody) return;
 
     const currentLang = localStorage.getItem('tv_lang') || 'en';
+
+    if (!this.data.recentTransactions || !this.data.recentTransactions.length) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="4" style="text-align: center; padding: 2rem; color: var(--color-text-muted);">
+            <div style="font-size: 0.875rem;">${currentLang === 'ta' ? 'இன்றைய விற்பனை பதிவுகள் ஏதுமில்லை.' : 'No transactions recorded yet today.'}</div>
+            <div style="font-size: 0.75rem; margin-top: 4px;">${currentLang === 'ta' ? 'விற்பனை பதிவு செய்ய வாய்ஸ் அல்லது Sales Tab பயன்படுத்தவும்.' : 'Use voice commands or the Sales tab to record sales.'}</div>
+          </td>
+        </tr>
+      `;
+      return;
+    }
 
     tbody.innerHTML = this.data.recentTransactions.map(tx => {
       const items = currentLang === 'ta' ? tx.itemsTa : tx.itemsEn;
@@ -372,6 +442,15 @@ export const Dashboard = {
     if (!container) return;
 
     const currentLang = localStorage.getItem('tv_lang') || 'en';
+
+    if (!this.data.topProducts || !this.data.topProducts.length) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 2rem; color: var(--color-text-muted); font-size: 0.875rem;">
+          ${currentLang === 'ta' ? 'விற்பனை தரவு எதுவும் கிடைக்கவில்லை.' : 'No sales data recorded yet.'}
+        </div>
+      `;
+      return;
+    }
 
     container.innerHTML = this.data.topProducts.map(p => {
       const name = currentLang === 'ta' ? p.nameTa : p.nameEn;

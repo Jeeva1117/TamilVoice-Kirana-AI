@@ -14,6 +14,7 @@ With TamilVoice Kirana AI, store owners can simply speak in colloquial Tamil (e.
 
 ---
 
+
 ## ⚠️ Problem Statement
 
 1. **Language & Interface Friction**: Existing ERP and billing software cater almost exclusively to English-literate users with desktop keyboard-and-mouse workflows, slowing down fast-paced Kirana counters.

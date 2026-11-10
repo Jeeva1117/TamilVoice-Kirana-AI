@@ -1,56 +1,111 @@
 /**
  * TamilVoice Kirana AI - Centralized API Service Layer
- * Connects to FastAPI backend on http://localhost:8000/api
- * Gracefully falls back to client-side store when backend is unreachable.
+ * Connects to FastAPI backend on http://127.0.0.1:8000/api (or same-origin)
+ * Provides 8-stage error tracing across:
+ * 1. Microphone capture
+ * 2. Frontend-to-backend connection
+ * 3. Audio upload
+ * 4. Gnani STT
+ * 5. Gemini processing
+ * 6. Database operation
+ * 7. Gnani TTS
+ * 8. Audio playback
  */
 
+function getInitialBaseUrl() {
+  if (typeof window === 'undefined') return '/api';
+  const savedUrl = localStorage.getItem('tamilvoice_backend_url') || localStorage.getItem('API_BASE_URL');
+  if (savedUrl && savedUrl.trim()) return savedUrl.trim();
+  if (window.__API_BASE_URL__ && window.__API_BASE_URL__.trim()) return window.__API_BASE_URL__.trim();
+  const metaUrl = document.querySelector('meta[name="backend-api-url"]')?.content;
+  if (metaUrl && metaUrl.trim()) return metaUrl.trim();
+  if (window.location.port === '8000') {
+    return `${window.location.origin}/api`;
+  }
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return `${window.location.protocol}//127.0.0.1:8000/api`;
+  }
+  return '/api';
+}
+
 export const API_CONFIG = {
-  BASE_URL: (typeof window !== 'undefined' && window.__API_BASE_URL__) || (
-    typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-      ? `${window.location.protocol}//${window.location.hostname}:8000/api`
-      : '/api'
-  ),
-  TIMEOUT_MS: 8000,
+  BASE_URL: getInitialBaseUrl(),
+  TIMEOUT_MS: 30000,
   IS_BACKEND_AVAILABLE: false,
 };
 
 export class ApiService {
   /**
-   * Test connection to FastAPI backend
+   * Configure and save custom deployed backend URL (for Vercel production deployment)
+   */
+  static setBackendUrl(url) {
+    if (!url || typeof url !== 'string') return API_CONFIG.BASE_URL;
+    let clean = url.trim().replace(/\/+$/, '');
+    if (!clean.endsWith('/api') && !clean.includes('/api/')) {
+      clean = `${clean}/api`;
+    }
+    localStorage.setItem('tamilvoice_backend_url', clean);
+    API_CONFIG.BASE_URL = clean;
+    return clean;
+  }
+
+  /**
+   * Test connection to FastAPI backend with auto-discovery fallback
    */
   static async checkHealth() {
-    try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/health`, {
-        method: 'GET',
-        headers: { Accept: 'application/json' },
-        signal: AbortSignal.timeout(3000),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        API_CONFIG.IS_BACKEND_AVAILABLE = data.status === 'healthy';
-        return data;
+    const saved = localStorage.getItem('tamilvoice_backend_url');
+    const candidates = [
+      API_CONFIG.BASE_URL,
+      saved,
+      window.__API_BASE_URL__,
+      `${window.location.protocol}//127.0.0.1:8000/api`,
+      `${window.location.protocol}//localhost:8000/api`,
+      '/api'
+    ].filter(Boolean);
+    const uniqueCandidates = [...new Set(candidates)];
+
+    for (const cand of uniqueCandidates) {
+      try {
+        const response = await fetch(`${cand}/health`, {
+          method: 'GET',
+          headers: { Accept: 'application/json' },
+          signal: AbortSignal.timeout(3000),
+        });
+        if (response.ok) {
+          const data = await response.json();
+          API_CONFIG.BASE_URL = cand;
+          API_CONFIG.IS_BACKEND_AVAILABLE = data.status === 'healthy';
+          return data;
+        }
+      } catch {
+        // try next candidate
       }
-    } catch {
-      API_CONFIG.IS_BACKEND_AVAILABLE = false;
     }
+
+    API_CONFIG.IS_BACKEND_AVAILABLE = false;
     return { status: 'offline', database: 'disconnected' };
   }
 
   /**
-   * Generic request wrapper with timeout and error handling
+   * Generic request wrapper with stage-aware error handling
    * @param {string} endpoint
    * @param {RequestInit} options
    */
   static async request(endpoint, options = {}) {
     const url = `${API_CONFIG.BASE_URL}${endpoint}`;
+    const isFormData = options.body instanceof FormData;
     const headers = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
+      Accept: 'application/json',
+      ...(!isFormData ? { 'Content-Type': 'application/json' } : {}),
       ...options.headers,
     };
+    if (isFormData && headers['Content-Type']) {
+      delete headers['Content-Type'];
+    }
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT_MS);
+    const timeoutMs = options.timeoutMs || API_CONFIG.TIMEOUT_MS;
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
       const response = await fetch(url, {
@@ -63,7 +118,8 @@ export class ApiService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || `HTTP Error ${response.status}: ${response.statusText}`);
+        const stagePrefix = errorData.stage ? `[Stage: ${errorData.stage}] ` : '';
+        throw new Error(`${stagePrefix}${errorData.detail || `HTTP Error ${response.status}: ${response.statusText}`}`);
       }
 
       API_CONFIG.IS_BACKEND_AVAILABLE = true;
@@ -71,7 +127,10 @@ export class ApiService {
     } catch (error) {
       clearTimeout(timeoutId);
       if (error.name === 'AbortError') {
-        throw new Error('API Request timed out.');
+        throw new Error(`[Stage 2: Backend Connection] Request to ${endpoint} timed out after ${timeoutMs / 1000}s. Check backend server.`);
+      }
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        throw new Error(`[Stage 2: Backend Connection] Could not connect to FastAPI at ${API_CONFIG.BASE_URL}. Ensure uvicorn backend server is running on port 8000.`);
       }
       throw error;
     }
@@ -257,10 +316,22 @@ export class ApiService {
     return this.request('/ai/status', { method: 'GET' });
   }
 
-  static async interpretCommand(text) {
+  static normalizeLang(lang) {
+    if (!lang) return 'ta-IN';
+    const l = String(lang).toLowerCase().trim();
+    if (l === 'en' || l === 'english' || l === 'en-in') return 'en-IN';
+    return 'ta-IN';
+  }
+
+  static async interpretCommand(text, sessionId = null, context = null) {
     return this.request('/ai/interpret', {
       method: 'POST',
-      body: JSON.stringify({ text, allow_mock: true }),
+      body: JSON.stringify({
+        text,
+        allow_mock: false,
+        session_id: sessionId,
+        context: context,
+      }),
     });
   }
 
@@ -286,24 +357,42 @@ export class ApiService {
   }
 
   static async transcribeAudio(audioBlob, language = 'ta-IN') {
+    const normLang = this.normalizeLang(language);
     const formData = new FormData();
     formData.append('file', audioBlob, 'recording.wav');
-    formData.append('language', language);
+    formData.append('language', normLang);
 
     const url = `${API_CONFIG.BASE_URL}/voice/transcribe`;
-    const response = await fetch(url, {
-      method: 'POST',
-      body: formData,
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 35000);
 
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error(err.detail || `STT error: ${response.statusText}`);
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        body: formData,
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.detail || `[Stage 4: Gnani STT] Transcription failed: ${response.statusText}`);
+      }
+      return await response.json();
+    } catch (err) {
+      clearTimeout(timeoutId);
+      if (err.name === 'AbortError') {
+        throw new Error('[Stage 4: Gnani STT] STT transcription timed out after 35s.');
+      }
+      if (err.name === 'TypeError' && err.message.includes('fetch')) {
+        throw new Error(`[Stage 2: Backend Connection] Could not reach ${API_CONFIG.BASE_URL}/voice/transcribe. Is FastAPI running?`);
+      }
+      throw err;
     }
-    return await response.json();
   }
 
-  static async processVoiceCommand(audioBlob = null, transcriptText = null, language = 'ta-IN') {
+  static async processVoiceCommand(audioBlob = null, transcriptText = null, language = 'ta-IN', sessionId = null, context = null) {
+    const normLang = this.normalizeLang(language);
     const formData = new FormData();
     if (audioBlob) {
       formData.append('audio', audioBlob, 'recording.wav');
@@ -311,35 +400,76 @@ export class ApiService {
     if (transcriptText) {
       formData.append('transcript', transcriptText);
     }
-    formData.append('language', language);
+    formData.append('language', normLang);
+    if (sessionId) {
+      formData.append('session_id', sessionId);
+    }
+    if (context) {
+      formData.append('context_json', JSON.stringify(context));
+    }
 
     const url = `${API_CONFIG.BASE_URL}/voice/command`;
-    const response = await fetch(url, {
-      method: 'POST',
-      body: formData,
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 45000);
 
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error(err.detail || `Voice command error: ${response.statusText}`);
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        body: formData,
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        const stagePrefix = err.stage ? `[Stage: ${err.stage}] ` : '';
+        throw new Error(`${stagePrefix}${err.detail || `Voice command error: ${response.statusText}`}`);
+      }
+      return await response.json();
+    } catch (err) {
+      clearTimeout(timeoutId);
+      if (err.name === 'AbortError') {
+        throw new Error('[Stage 3: Audio Upload / Pipeline Timeout] Voice command request timed out. Please check network and server.');
+      }
+      if (err.name === 'TypeError' && err.message.includes('fetch')) {
+        throw new Error(`[Stage 2: Backend Connection] Network error connecting to ${API_CONFIG.BASE_URL}/voice/command. Ensure FastAPI backend is running.`);
+      }
+      throw err;
     }
-    return await response.json();
   }
 
   static async synthesizeSpeech(text, language = 'ta-IN', speed = 1.0) {
+    const normLang = this.normalizeLang(language);
     const url = `${API_CONFIG.BASE_URL}/voice/speak`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ text, language, speed }),
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 25000);
 
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error(err.detail || `TTS synthesis error: ${response.statusText}`);
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'audio/wav, audio/*, */*'
+        },
+        body: JSON.stringify({ text, language: normLang, speed }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.detail || `[Stage 7: Gnani TTS] TTS synthesis failed: ${response.statusText}`);
+      }
+      return await response.blob();
+    } catch (err) {
+      clearTimeout(timeoutId);
+      if (err.name === 'AbortError') {
+        throw new Error('[Stage 7: Gnani TTS] TTS synthesis timed out after 25s.');
+      }
+      if (err.name === 'TypeError' && err.message.includes('fetch')) {
+        throw new Error(`[Stage 2: Backend Connection] Could not reach TTS service at ${API_CONFIG.BASE_URL}/voice/speak.`);
+      }
+      throw err;
     }
-    return await response.blob();
   }
 }

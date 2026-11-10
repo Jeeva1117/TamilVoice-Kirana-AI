@@ -25,16 +25,8 @@ from backend.app.routers import (
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application startup & shutdown events."""
-    # Ensure all tables exist in SQLite
+    # Ensure all tables exist in SQLite database
     Base.metadata.create_all(bind=engine)
-
-    # Seed initial Kirana catalog if fresh database
-    db = SessionLocal()
-    try:
-        seed_database(db)
-    finally:
-        db.close()
-
     yield
 
 
@@ -47,13 +39,28 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# CORS Middleware
+# CORS Middleware configured for Local Development & Vercel Production Domains
+cors_list = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "http://localhost:5500",
+    "http://127.0.0.1:5500",
+]
+if isinstance(settings.CORS_ORIGINS, list):
+    for o in settings.CORS_ORIGINS:
+        if o and o not in cors_list and o != "*":
+            cors_list.append(o)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Permits local development on port 3000 / 8000
+    allow_origins=cors_list,
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$|^https://.*\.vercel\.app$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Mount API Routers under /api

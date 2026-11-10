@@ -5,6 +5,7 @@
 
 import { Utils } from './utils.js';
 import { Store } from './store.js';
+import { ApiService } from './api.js';
 
 export const Inventory = {
   searchQuery: '',
@@ -45,7 +46,6 @@ export const Inventory = {
     this.btnResetFilters = document.getElementById('inv-btn-reset-filters');
     this.btnExportCSV = document.getElementById('inv-btn-export-csv');
     this.btnOpenAddModal = document.getElementById('inv-btn-open-add');
-    this.btnResetDemoData = document.getElementById('inv-btn-reset-demo');
 
     // Table elements
     this.tableBody = document.getElementById('inventory-table-body');
@@ -116,16 +116,6 @@ export const Inventory = {
     // Open Add Product Modal
     if (this.btnOpenAddModal) {
       this.btnOpenAddModal.addEventListener('click', () => this.openAddModal());
-    }
-
-    // Reset Demo Data
-    if (this.btnResetDemoData) {
-      this.btnResetDemoData.addEventListener('click', () => {
-        if (confirm('Reset all demo inventory and sales to default initial values?')) {
-          Store.resetDemoData();
-          Utils.showToast('info', 'Reset Complete', 'Demo inventory and sales restored to initial records.');
-        }
-      });
     }
 
     // Form Add Product
@@ -258,6 +248,8 @@ export const Inventory = {
     }
 
     if (!filtered.length) {
+      const allProducts = Store.getProducts();
+      const isEmptyInventory = allProducts.length === 0;
       this.tableBody.innerHTML = `
         <tr>
           <td colspan="9">
@@ -265,13 +257,16 @@ export const Inventory = {
               <svg class="table-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                 <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><line x1="8" x2="14" y1="11" y2="11"/>
               </svg>
-              <h4 style="font-size: 1rem; color: var(--color-text-primary); margin-top: 4px;">No products found</h4>
+              <h4 style="font-size: 1rem; color: var(--color-text-primary); margin-top: 4px;">
+                ${isEmptyInventory ? 'No products added yet' : 'No products found'}
+              </h4>
               <p style="font-size: 0.8125rem; color: var(--color-text-secondary); max-width: 320px;">
-                No inventory records match your search or filter criteria.
+                ${isEmptyInventory ? 'Add your first product to get started managing your Kirana stock.' : 'No inventory records match your search or filter criteria.'}
               </p>
-              <button class="btn btn-sm btn-outline" style="margin-top: 8px;" onclick="document.getElementById('inv-btn-reset-filters').click();">
-                Reset All Filters
-              </button>
+              ${isEmptyInventory
+                ? '<button class="btn btn-sm btn-primary" style="margin-top: 8px;" onclick="document.getElementById(\'inv-btn-open-add\').click();">+ Add First Product</button>'
+                : '<button class="btn btn-sm btn-outline" style="margin-top: 8px;" onclick="document.getElementById(\'inv-btn-reset-filters\').click();">Reset All Filters</button>'
+              }
             </div>
           </td>
         </tr>
@@ -375,7 +370,7 @@ export const Inventory = {
     this.modalAdd.classList.add('open');
   },
 
-  handleAddSubmit(e) {
+  async handleAddSubmit(e) {
     e.preventDefault();
 
     const nameEn = document.getElementById('add-product-name-en').value.trim();
@@ -414,21 +409,41 @@ export const Inventory = {
       }
     }
 
-    const newProduct = Store.addProduct({
-      name_en: nameEn,
+    const genSku = sku || `SKU-${category.slice(0, 3).toUpperCase()}-${Date.now().toString().slice(-4)}`;
+    const productPayload = {
+      name: nameEn,
       name_ta: nameTa || nameEn,
-      sku: sku || `SKU-${category.slice(0, 3).toUpperCase()}-${Date.now().toString().slice(-4)}`,
+      sku: genSku,
       category,
-      stock,
-      min_stock: isNaN(minStock) ? 5 : minStock,
+      quantity: stock,
       unit,
       purchase_price: purchasePrice,
       selling_price: sellingPrice,
+      minimum_stock_level: isNaN(minStock) ? 5 : minStock,
       description
-    });
+    };
+
+    try {
+      await ApiService.createProduct(productPayload);
+      await Store.syncFromBackend();
+    } catch (err) {
+      console.warn('Backend createProduct unavailable, persisting locally:', err);
+      Store.addProduct({
+        name_en: nameEn,
+        name_ta: nameTa || nameEn,
+        sku: genSku,
+        category,
+        stock,
+        min_stock: isNaN(minStock) ? 5 : minStock,
+        unit,
+        purchase_price: purchasePrice,
+        selling_price: sellingPrice,
+        description
+      });
+    }
 
     this.modalAdd.classList.remove('open');
-    Utils.showToast('success', 'Product Added', `${newProduct.name_en} successfully added to inventory.`);
+    Utils.showToast('success', 'Product Added', `${nameEn} successfully saved to inventory.`);
   },
 
   /* =========================================================================
@@ -484,21 +499,42 @@ export const Inventory = {
       }
     }
 
-    const updated = Store.updateProduct(this.selectedProductId, {
-      name_en: nameEn,
+    const editPayload = {
+      name: nameEn,
       name_ta: nameTa,
       sku,
       category,
-      stock,
+      quantity: stock,
       min_stock: minStock,
       unit,
       purchase_price: purchasePrice,
       selling_price: sellingPrice,
       description
-    });
+    };
+
+    (async () => {
+      try {
+        await ApiService.updateProduct(this.selectedProductId, editPayload);
+        await Store.syncFromBackend();
+      } catch (err) {
+        console.warn('Backend updateProduct unavailable, updating locally:', err);
+        Store.updateProduct(this.selectedProductId, {
+          name_en: nameEn,
+          name_ta: nameTa,
+          sku,
+          category,
+          stock,
+          min_stock: minStock,
+          unit,
+          purchase_price: purchasePrice,
+          selling_price: sellingPrice,
+          description
+        });
+      }
+    })();
 
     this.modalEdit.classList.remove('open');
-    Utils.showToast('success', 'Product Updated', `${updated.name_en} details saved.`);
+    Utils.showToast('success', 'Product Updated', `${nameEn} details saved.`);
   },
 
   /* =========================================================================
@@ -521,11 +557,20 @@ export const Inventory = {
 
     const product = Store.getProductById(this.deleteTargetId);
     const name = product ? product.name_en : 'Product';
+    const targetId = this.deleteTargetId;
 
-    Store.deleteProduct(this.deleteTargetId);
+    (async () => {
+      try {
+        await ApiService.deleteProduct(targetId);
+        await Store.syncFromBackend();
+      } catch (err) {
+        console.warn('Backend deleteProduct unavailable, deleting locally:', err);
+        Store.deleteProduct(targetId);
+      }
+    })();
+
     this.deleteTargetId = null;
     this.modalDelete.classList.remove('open');
-
     Utils.showToast('warning', 'Product Removed', `"${name}" was deleted from inventory.`);
   },
 
@@ -596,10 +641,27 @@ export const Inventory = {
     }
 
     const fullReason = notes ? `${reason}: ${notes}` : reason;
-    const res = Store.adjustStock(this.selectedProductId, type, qty, fullReason);
+    const targetProdId = this.selectedProductId;
+    let adjTypeEnum = 'ADD';
+    if (type === 'Remove Stock') adjTypeEnum = 'REMOVE';
+    else if (type === 'Set Current Stock') adjTypeEnum = 'SET';
+
+    (async () => {
+      try {
+        await ApiService.adjustStock(targetProdId, {
+          adjustment_type: adjTypeEnum,
+          quantity: qty,
+          reason: fullReason
+        });
+        await Store.syncFromBackend();
+      } catch (err) {
+        console.warn('Backend adjustStock unavailable, adjusting locally:', err);
+        Store.adjustStock(targetProdId, type, qty, fullReason);
+      }
+    })();
 
     this.modalAdjust.classList.remove('open');
-    Utils.showToast('success', 'Stock Adjusted', `${product.name_en} stock updated from ${res.previousStock} to ${res.newStock} ${product.unit}.`);
+    Utils.showToast('success', 'Stock Adjusted', `${product.name_en} stock adjustment recorded.`);
   },
 
   /* =========================================================================
