@@ -122,7 +122,8 @@ def run_migrations_online() -> None:
     config.set_main_option("sqlalchemy.url", url)
 
     connect_args = {}
-    if url.startswith("postgresql"):
+    if url.startswith("postgresql") or url.startswith("postgres"):
+        connect_args["connect_timeout"] = int(os.getenv("DB_CONNECT_TIMEOUT", "10"))
         if "sslmode" not in url.lower() and "localhost" not in url and "127.0.0.1" not in url:
             connect_args["sslmode"] = "require"
     elif url.startswith("sqlite"):

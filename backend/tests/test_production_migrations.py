@@ -70,3 +70,41 @@ def test_local_development_preserves_sqlite():
         assert url.startswith("sqlite:///")
         assert "kirana_ai.db" in url
 
+
+def test_psycopg_v3_driver_compatibility():
+    """Verify psycopg v3 driver is installed and resolves postgresql+psycopg:// dialect."""
+    import psycopg
+    from sqlalchemy import create_engine
+    engine = create_engine("postgresql+psycopg://user:pass@localhost:5432/testdb")
+    assert engine.dialect.name == "postgresql"
+    assert engine.dialect.driver == "psycopg"
+
+
+def test_psycopg2_v2_driver_compatibility():
+    """Verify psycopg2 driver is installed and resolves postgresql:// and postgresql+psycopg2://."""
+    from sqlalchemy import create_engine
+    engine1 = create_engine("postgresql://user:pass@localhost:5432/testdb")
+    assert engine1.dialect.name == "postgresql"
+    assert engine1.dialect.driver == "psycopg2"
+
+    engine2 = create_engine("postgresql+psycopg2://user:pass@localhost:5432/testdb")
+    assert engine2.dialect.name == "postgresql"
+    assert engine2.dialect.driver == "psycopg2"
+
+
+def test_is_postgres_handles_psycopg_dialect():
+    """Verify settings.is_postgres returns True for postgresql+psycopg URLs."""
+    from backend.app.config import Settings
+    s1 = Settings(DATABASE_URL="postgresql+psycopg://user:pass@aws.supabase.com:6543/postgres")
+    assert s1.is_postgres is True
+
+    s2 = Settings(DATABASE_URL="postgresql+psycopg2://user:pass@aws.supabase.com:6543/postgres")
+    assert s2.is_postgres is True
+
+    s3 = Settings(DATABASE_URL="postgresql://user:pass@aws.supabase.com:6543/postgres")
+    assert s3.is_postgres is True
+
+    s4 = Settings(DATABASE_URL="sqlite:///./kirana_ai.db")
+    assert s4.is_postgres is False
+
+

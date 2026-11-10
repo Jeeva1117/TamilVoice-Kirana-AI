@@ -42,3 +42,4 @@ echo "  Health Status:    http://127.0.0.1:8000/health"
 echo "  Press Ctrl+C to stop both servers."
 echo "========================================================================"
 wait
+

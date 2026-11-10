@@ -24,3 +24,4 @@ window.__API_BASE_URL__ = "${backendUrl}";
 
 fs.writeFileSync(envFilePath, fileContent, 'utf-8');
 console.log(`[build.js] Generated frontend/js/env.js with BACKEND_URL: ${backendUrl ? backendUrl : '(empty - auto-detect)'}`);
+

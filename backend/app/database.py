@@ -43,12 +43,13 @@ else:
     engine_kwargs["max_overflow"] = 20
     engine_kwargs["pool_recycle"] = 300
 
-    # Supabase / cloud SSL configuration
-    connect_args = {}
+    # Supabase / cloud SSL & timeout configuration
+    connect_args = {
+        "connect_timeout": int(os.getenv("DB_CONNECT_TIMEOUT", "10")),
+    }
     if "sslmode" not in raw_db_url.lower() and "localhost" not in raw_db_url and "127.0.0.1" not in raw_db_url:
         connect_args["sslmode"] = "require"
-    if connect_args:
-        engine_kwargs["connect_args"] = connect_args
+    engine_kwargs["connect_args"] = connect_args
 
 engine = create_engine(raw_db_url, **engine_kwargs)
 

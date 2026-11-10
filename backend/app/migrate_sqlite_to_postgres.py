@@ -43,7 +43,9 @@ def get_postgres_engine(postgres_url: str):
     if raw_url.startswith("postgres://"):
         raw_url = raw_url.replace("postgres://", "postgresql://", 1)
 
-    connect_args = {}
+    connect_args = {
+        "connect_timeout": int(os.getenv("DB_CONNECT_TIMEOUT", "10")),
+    }
     if "sslmode" not in raw_url.lower() and "localhost" not in raw_url and "127.0.0.1" not in raw_url:
         connect_args["sslmode"] = "require"
 
@@ -51,9 +53,8 @@ def get_postgres_engine(postgres_url: str):
         "pool_pre_ping": True,
         "pool_size": 5,
         "max_overflow": 10,
+        "connect_args": connect_args,
     }
-    if connect_args:
-        engine_kwargs["connect_args"] = connect_args
 
     logger.info("Connecting to target PostgreSQL database...")
     return create_engine(raw_url, **engine_kwargs)

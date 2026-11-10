@@ -132,7 +132,11 @@ class Settings(BaseSettings):
     def is_postgres(self) -> bool:
         """Check if active database engine is PostgreSQL (Supabase/Render)."""
         db = (self.DATABASE_URL or "").strip().lower()
-        return db.startswith("postgres://") or db.startswith("postgresql://")
+        return (
+            db.startswith("postgres://")
+            or db.startswith("postgresql://")
+            or db.startswith("postgresql+")
+        )
 
     @property
     def is_production(self) -> bool:

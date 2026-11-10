@@ -94,7 +94,8 @@ def validate_and_get_database_url() -> str:
 def test_database_connectivity(db_url: str) -> None:
     """Verify that the database is reachable before applying migrations."""
     connect_args = {}
-    if db_url.startswith("postgresql"):
+    if db_url.startswith("postgresql") or db_url.startswith("postgres"):
+        connect_args["connect_timeout"] = int(os.getenv("DB_CONNECT_TIMEOUT", "10"))
         if "sslmode" not in db_url.lower() and "localhost" not in db_url and "127.0.0.1" not in db_url:
             connect_args["sslmode"] = "require"
     elif db_url.startswith("sqlite"):
