@@ -369,7 +369,7 @@ def test_all_13_phase3_intent_operations():
     intents_to_test = [
         ("check_stock", IntentCategory.CHECK_STOCK),
         ("add_stock", IntentCategory.ADD_STOCK),
-        ("remove_stock", IntentCategory.SELL_PRODUCT),
+        ("remove_stock", IntentCategory.REMOVE_STOCK),
         ("create_bill", IntentCategory.SELL_PRODUCT),
         ("check_sales", IntentCategory.SALES_REPORT),
         ("check_product_price", IntentCategory.CHECK_STOCK),

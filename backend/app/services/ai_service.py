@@ -45,9 +45,17 @@ from backend.app.services.product_resolver import (
 from backend.app.services import stock_service, sales_service, dashboard_service
 from backend.app.services.billing_calculator import (
     calculate_line_item,
+    calculate_line_item_with_conversion,
     calculate_bill,
     quantize_currency,
     to_decimal,
+)
+from backend.app.services.unit_converter import (
+    convert_quantity_to_base,
+    canonical_unit,
+)
+from backend.app.services.stock_intelligence_service import (
+    analyze_stock_intelligence,
 )
 
 logger = logging.getLogger(__name__)
@@ -531,7 +539,13 @@ async def interpret_user_command(
         items_spec = []
         for it in conv.cart_items:
             db_item = db.query(Product).filter(Product.id == it["product_id"], Product.is_active == True).first()
-            if not db_item or db_item.quantity < it["quantity"]:
+            req_u = it.get("unit") or (db_item.unit if db_item else "unit")
+            base_u = db_item.unit if db_item else req_u
+            line_tot_dec, qty_in_base = calculate_line_item_with_conversion(
+                it["quantity"], db_item.selling_price, req_u, base_u, it["product_name"]
+            )
+            qty_in_base_float = float(qty_in_base)
+            if not db_item or db_item.quantity < qty_in_base_float:
                 avail = db_item.quantity if db_item else 0
                 return InterpretResponse(
                     success=False,
@@ -545,19 +559,20 @@ async def interpret_user_command(
                         requires_clarification=False
                     ),
                     requires_confirmation=False,
-                    message=f"Insufficient stock for '{it['product_name']}'. Available: {avail} {it['unit']}, requested: {it['quantity']} {it['unit']}.",
+                    message=f"Insufficient stock for '{it['product_name']}'. Available: {avail} {db_item.unit}, requested: {it['quantity']} {it['unit']}.",
                     message_ta=f"'{it['product_name']}' போதுமான இருப்பு இல்லை! தற்போது {avail} மட்டுமே உள்ளது.",
                     session_id=effective_session_id,
                     context=conv.to_dict()
                 )
-            line_tot_dec = calculate_line_item(it["quantity"], db_item.selling_price, db_item.unit)
             items_spec.append({
                 "product_id": db_item.id,
                 "product_name": db_item.name,
                 "quantity": it["quantity"],
-                "unit": it.get("unit") or db_item.unit,
+                "unit": req_u,
+                "base_quantity": qty_in_base_float,
+                "base_unit": base_u,
                 "current_stock": db_item.quantity,
-                "projected_stock": round(db_item.quantity - it["quantity"], 3),
+                "projected_stock": round(db_item.quantity - qty_in_base_float, 3),
                 "unit_price": float(quantize_currency(db_item.selling_price)),
                 "line_total": float(line_tot_dec)
             })
@@ -659,18 +674,26 @@ async def interpret_user_command(
                         qty = item["quantity"]
                         unit = item["unit"] or db_item.unit
                         unit_p_dec = quantize_currency(db_item.selling_price)
-                        line_tot_dec = calculate_line_item(qty, unit_p_dec, unit)
+                        line_tot_dec, qty_in_base = calculate_line_item_with_conversion(
+                            qty, unit_p_dec, unit, db_item.unit, db_item.name
+                        )
                         
                         existing = next((c for c in conv.cart_items if c["product_id"] == db_item.id), None)
                         if existing:
                             existing["quantity"] += qty
-                            existing["line_total"] = float(calculate_line_item(existing["quantity"], unit_p_dec, unit))
+                            new_tot_dec, new_base = calculate_line_item_with_conversion(
+                                existing["quantity"], unit_p_dec, existing["unit"], db_item.unit, db_item.name
+                            )
+                            existing["line_total"] = float(new_tot_dec)
+                            existing["base_quantity"] = float(new_base)
                         else:
                             conv.cart_items.append({
                                 "product_id": db_item.id,
                                 "product_name": db_item.name,
                                 "quantity": qty,
                                 "unit": unit,
+                                "base_quantity": float(qty_in_base),
+                                "base_unit": db_item.unit,
                                 "unit_price": float(unit_p_dec),
                                 "line_total": float(line_tot_dec)
                             })
@@ -834,12 +857,41 @@ async def interpret_user_command(
         if price_match:
             intent.entities.price = float(price_match.group(1))
 
+    # Overrides for stock remove, set, predictive queries, and analytics reports
+    if ("remove" in lower_text or "korainga" in lower_text or "கழி" in lower_text) and any(w in lower_text for w in ["stock", "இருப்பு", "kilo", "kg", "packet"]) and not conv.cart_items and intent.intent != IntentCategory.CANCEL_ACTION:
+        intent.intent = IntentCategory.REMOVE_STOCK
+        intent.requires_clarification = False
+
+    if (any(kw in lower_text for kw in ["stock update", "stock adjust", "stock set", "irukku nu update"]) or ("update" in lower_text and "stock" in lower_text and "price" not in lower_text)) and intent.intent != IntentCategory.SET_STOCK:
+        intent.intent = IntentCategory.SET_STOCK
+        intent.requires_clarification = False
+
+    has_specific_product = bool(getattr(intent.entities, "product_name", None))
+    if not has_specific_product and getattr(intent.entities, "items", None):
+        has_specific_product = True
+
+    if not has_specific_product and any(kw in lower_text for kw in ["naalaikku", "stock out", "out of stock", "low stock", "running low", "reorder", "stock kammi", "தீர்ந்துபோகும்", "குறைந்த இருப்பு"]) and intent.intent != IntentCategory.LOW_STOCK_QUERY:
+        intent.intent = IntentCategory.LOW_STOCK_QUERY
+        intent.requires_clarification = False
+
+    if any(kw in lower_text for kw in ["inventory value", "inventory valuation", "total inventory", "இருப்பு மதிப்பு"]) and intent.intent != IntentCategory.INVENTORY_REPORT:
+        intent.intent = IntentCategory.INVENTORY_REPORT
+        intent.requires_clarification = False
+
+    if any(kw in lower_text for kw in ["best selling", "top selling", "most selling", "அதிக விற்பனையான"]) and intent.intent != IntentCategory.PRODUCT_SALES_REPORT:
+        intent.intent = IntentCategory.PRODUCT_SALES_REPORT
+        intent.requires_clarification = False
+
+    if any(kw in lower_text for kw in ["today sales", "sales evlo", "innaiku sales", "விற்பனை எவ்வளவு"]) and intent.intent not in (IntentCategory.SALES_REPORT, IntentCategory.PRODUCT_SALES_REPORT):
+        intent.intent = IntentCategory.SALES_REPORT
+        intent.requires_clarification = False
+
     # -------------------------------------------------------------------------
     # Step 5: Context Injection for Pronouns / Omitted Products
     # ("Innum 5 kilo add pannunga", "Adhula 2 kilo remove pannunga", "Stock evlo irukku?")
     # -------------------------------------------------------------------------
     if not intent.entities.product_name and conv.active_product_name:
-        if intent.intent in (IntentCategory.ADD_STOCK, IntentCategory.SELL_PRODUCT, IntentCategory.CHECK_STOCK):
+        if intent.intent in (IntentCategory.ADD_STOCK, IntentCategory.REMOVE_STOCK, IntentCategory.SET_STOCK, IntentCategory.SELL_PRODUCT, IntentCategory.CHECK_STOCK):
             intent.entities.product_name = conv.active_product_name
             if not intent.entities.unit:
                 intent.entities.unit = conv.active_product_unit or "kg"
@@ -847,8 +899,8 @@ async def interpret_user_command(
             if intent.entities.quantity is not None or intent.intent == IntentCategory.CHECK_STOCK:
                 intent.requires_clarification = False
 
-    # Also if both product_name and quantity are now present for ADD/SELL, clear clarification
-    if intent.intent in (IntentCategory.ADD_STOCK, IntentCategory.SELL_PRODUCT):
+    # Also if both product_name and quantity are now present for stock operations or sales, clear clarification
+    if intent.intent in (IntentCategory.ADD_STOCK, IntentCategory.REMOVE_STOCK, IntentCategory.SET_STOCK, IntentCategory.SELL_PRODUCT):
         if intent.entities.product_name and intent.entities.quantity is not None and intent.entities.quantity > 0:
             intent.requires_clarification = False
 
@@ -865,6 +917,10 @@ async def interpret_user_command(
                 p_disp = intent.entities.product_name
                 if intent.intent == IntentCategory.ADD_STOCK:
                     clarification_msg = f"எவ்வளவு {p_disp} சேர்க்க வேண்டும்?" if is_tamil else f"How much {p_disp} would you like to add?"
+                elif intent.intent == IntentCategory.REMOVE_STOCK:
+                    clarification_msg = f"எவ்வளவு {p_disp} குறைக்க வேண்டும்?" if is_tamil else f"How much {p_disp} would you like to remove?"
+                elif intent.intent == IntentCategory.SET_STOCK:
+                    clarification_msg = f"{p_disp} இருப்பு எவ்வளவு என மாற்ற வேண்டும்?" if is_tamil else f"What should the stock of {p_disp} be set to?"
                 elif intent.intent == IntentCategory.SELL_PRODUCT:
                     clarification_msg = f"{p_disp} எவ்வளவு வேண்டும்?" if is_tamil else f"How much {p_disp} would you like to sell?"
                 else:
@@ -881,7 +937,7 @@ async def interpret_user_command(
             if intent.entities.quantity:
                 conv.last_quantity = intent.entities.quantity
                 conv.last_unit = intent.entities.unit or "kg"
-            if intent.intent in (IntentCategory.ADD_STOCK, IntentCategory.SELL_PRODUCT):
+            if intent.intent in (IntentCategory.ADD_STOCK, IntentCategory.REMOVE_STOCK, IntentCategory.SET_STOCK, IntentCategory.SELL_PRODUCT):
                 conv.pending_action_type = intent.intent.value
 
         conv.updated_at = datetime.now(timezone.utc)
@@ -976,9 +1032,9 @@ async def interpret_user_command(
             )
 
     # =========================================================================
-    # Intent: ADD_STOCK or SELL_PRODUCT (Consequential mutations requiring confirmation)
+    # Intent: ADD_STOCK, REMOVE_STOCK, SET_STOCK, or SELL_PRODUCT (Consequential mutations requiring confirmation)
     # =========================================================================
-    if intent.intent in (IntentCategory.ADD_STOCK, IntentCategory.SELL_PRODUCT):
+    if intent.intent in (IntentCategory.ADD_STOCK, IntentCategory.REMOVE_STOCK, IntentCategory.SET_STOCK, IntentCategory.SELL_PRODUCT):
         # 1. Check for dynamic multi-item customer order
         items_to_process = []
         if intent.intent == IntentCategory.SELL_PRODUCT:
@@ -1012,24 +1068,44 @@ async def interpret_user_command(
                     )
 
                 db_item = db.query(Product).filter(Product.id == res_prod.id, Product.is_active == True).first()
-                if not db_item or db_item.quantity < item.quantity:
+                req_u = item.unit or (db_item.unit if db_item else "unit")
+                try:
+                    line_tot_dec, qty_in_base = calculate_line_item_with_conversion(
+                        quantity=item.quantity,
+                        unit_price=db_item.selling_price,
+                        requested_unit=req_u,
+                        base_unit=db_item.unit,
+                        product_name=db_item.name
+                    )
+                except ValueError as e:
+                    return InterpretResponse(
+                        success=False,
+                        intent=intent,
+                        requires_confirmation=False,
+                        message=str(e),
+                        message_ta=f"'{item.product_name}' அளவு அல்லது யூனிட் பொருந்தவில்லை."
+                    )
+
+                qty_in_base_float = float(qty_in_base)
+                if not db_item or db_item.quantity < qty_in_base_float:
                     avail = db_item.quantity if db_item else 0
                     return InterpretResponse(
                         success=False,
                         intent=intent,
                         requires_confirmation=False,
-                        message=f"Insufficient stock for '{item.product_name}'. Available: {avail} {item.unit}, requested: {item.quantity} {item.unit}.",
-                        message_ta=f"'{item.product_name}' போதுமான இருப்பு இல்லை! தற்போது {avail} மட்டுமே உள்ளது."
+                        message=f"Insufficient stock for '{item.product_name}'. Available: {avail} {db_item.unit}, requested: {item.quantity} {req_u}.",
+                        message_ta=f"'{item.product_name}' போதுமான இருப்பு இல்லை! தற்போது {avail} {db_item.unit} மட்டுமே உள்ளது."
                     )
 
-                line_tot_dec = calculate_line_item(item.quantity, db_item.selling_price, item.unit or db_item.unit)
                 items_spec.append({
                     "product_id": db_item.id,
                     "product_name": db_item.name,
                     "quantity": item.quantity,
-                    "unit": item.unit or db_item.unit,
+                    "unit": req_u,
+                    "base_quantity": qty_in_base_float,
+                    "base_unit": db_item.unit,
                     "current_stock": db_item.quantity,
-                    "projected_stock": round(db_item.quantity - item.quantity, 3),
+                    "projected_stock": round(db_item.quantity - qty_in_base_float, 3),
                     "unit_price": float(quantize_currency(db_item.selling_price)),
                     "line_total": float(line_tot_dec)
                 })
@@ -1100,7 +1176,18 @@ async def interpret_user_command(
 
         if not product_query:
             intent.requires_clarification = True
-            action_word = "add" if intent.intent == IntentCategory.ADD_STOCK else "sell"
+            if intent.intent == IntentCategory.ADD_STOCK:
+                action_word = "add"
+                ta_word = "சேர்க்க"
+            elif intent.intent == IntentCategory.REMOVE_STOCK:
+                action_word = "remove"
+                ta_word = "குறைக்க"
+            elif intent.intent == IntentCategory.SET_STOCK:
+                action_word = "update"
+                ta_word = "மாற்ற"
+            else:
+                action_word = "sell"
+                ta_word = "விற்க"
             unit_hint = intent.entities.unit or "kg"
             qty_fmt = f"{int(qty) if qty.is_integer() else qty} {unit_hint}" if qty else ""
             question = f"Endha product-ku {qty_fmt} {action_word} pannanum?".strip()
@@ -1115,7 +1202,7 @@ async def interpret_user_command(
                 intent=intent,
                 requires_confirmation=False,
                 message=question,
-                message_ta=f"எந்தப் பொருளுக்கு {qty_fmt} {action_word} செய்ய வேண்டும்?",
+                message_ta=f"எந்தப் பொருளுக்கு {qty_fmt} {ta_word} வேண்டும்?",
                 session_id=effective_session_id,
                 context=conv.to_dict()
             )
@@ -1124,6 +1211,10 @@ async def interpret_user_command(
             intent.requires_clarification = True
             if intent.intent == IntentCategory.ADD_STOCK:
                 question = f"எவ்வளவு {product_query} சேர்க்க வேண்டும்?"
+            elif intent.intent == IntentCategory.REMOVE_STOCK:
+                question = f"எவ்வளவு {product_query} குறைக்க வேண்டும்?"
+            elif intent.intent == IntentCategory.SET_STOCK:
+                question = f"{product_query} இருப்பு எவ்வளவு என மாற்ற வேண்டும்?"
             else:
                 question = f"{product_query} எவ்வளவு வேண்டும்?"
             intent.clarification_question = question
@@ -1170,12 +1261,37 @@ async def interpret_user_command(
 
         current_stock = db_product.quantity
         unit = intent.entities.unit or db_product.unit
-        action_name = "ADD_STOCK" if intent.intent == IntentCategory.ADD_STOCK else "SELL_PRODUCT"
+        if intent.intent == IntentCategory.ADD_STOCK:
+            action_name = "ADD_STOCK"
+        elif intent.intent == IntentCategory.REMOVE_STOCK:
+            action_name = "REMOVE_STOCK"
+        elif intent.intent == IntentCategory.SET_STOCK:
+            action_name = "SET_STOCK"
+        else:
+            action_name = "SELL_PRODUCT"
         prod_disp = db_product.name_ta or db_product.name
 
         # Validate sale stock availability
         if intent.intent == IntentCategory.SELL_PRODUCT:
-            if current_stock < qty:
+            try:
+                line_tot_dec, qty_in_base = calculate_line_item_with_conversion(
+                    quantity=qty,
+                    unit_price=db_product.selling_price,
+                    requested_unit=unit,
+                    base_unit=db_product.unit,
+                    product_name=db_product.name
+                )
+            except ValueError as e:
+                return InterpretResponse(
+                    success=False,
+                    intent=intent,
+                    requires_confirmation=False,
+                    message=str(e),
+                    message_ta=f"{db_product.name} அளவு அல்லது யூனிட் பொருந்தவில்லை."
+                )
+
+            qty_in_base_float = float(qty_in_base)
+            if current_stock < qty_in_base_float:
                 return InterpretResponse(
                     success=False,
                     intent=intent,
@@ -1190,14 +1306,56 @@ async def interpret_user_command(
                     )
                 )
 
-            projected_stock = round(current_stock - qty, 3)
+            projected_stock = round(current_stock - qty_in_base_float, 3)
             unit_p_dec = quantize_currency(db_product.selling_price)
-            line_tot_dec = calculate_line_item(qty, unit_p_dec, unit)
             unit_price = float(unit_p_dec)
             estimated_total = float(line_tot_dec)
-        else:
-            projected_stock = round(current_stock + qty, 3)
+            effective_qty = qty_in_base_float
+            effective_unit = db_product.unit
+        elif intent.intent == IntentCategory.ADD_STOCK:
+            try:
+                c_qty, _ = convert_quantity_to_base(to_decimal(qty), from_unit=unit, to_unit=db_product.unit, product_name=db_product.name)
+            except ValueError as e:
+                return InterpretResponse(success=False, intent=intent, requires_confirmation=False, message=str(e))
+            effective_qty = float(c_qty)
+            effective_unit = db_product.unit
+            projected_stock = round(current_stock + effective_qty, 3)
             unit_price = float(quantize_currency(db_product.purchase_price))
+            estimated_total = None
+        elif intent.intent == IntentCategory.REMOVE_STOCK:
+            try:
+                c_qty, _ = convert_quantity_to_base(to_decimal(qty), from_unit=unit, to_unit=db_product.unit, product_name=db_product.name)
+            except ValueError as e:
+                return InterpretResponse(success=False, intent=intent, requires_confirmation=False, message=str(e))
+            effective_qty = float(c_qty)
+            effective_unit = db_product.unit
+            if current_stock < effective_qty:
+                return InterpretResponse(
+                    success=False,
+                    intent=intent,
+                    resolved_product=resolved_prod,
+                    requires_confirmation=False,
+                    message=f"Insufficient stock to remove {qty} {unit}. Available: {current_stock} {db_product.unit}.",
+                    message_ta=f"{db_product.name} போதுமான இருப்பு இல்லை. தற்போது {current_stock} {db_product.unit} மட்டுமே உள்ளது."
+                )
+            projected_stock = round(current_stock - effective_qty, 3)
+            unit_price = None
+            estimated_total = None
+        elif intent.intent == IntentCategory.SET_STOCK:
+            try:
+                c_qty, _ = convert_quantity_to_base(to_decimal(qty), from_unit=unit, to_unit=db_product.unit, product_name=db_product.name)
+            except ValueError as e:
+                return InterpretResponse(success=False, intent=intent, requires_confirmation=False, message=str(e))
+            effective_qty = float(c_qty)
+            effective_unit = db_product.unit
+            projected_stock = round(effective_qty, 3)
+            unit_price = None
+            estimated_total = None
+        else:
+            effective_qty = qty
+            effective_unit = unit
+            projected_stock = current_stock
+            unit_price = None
             estimated_total = None
 
         # Build secure pending confirmation
@@ -1210,8 +1368,8 @@ async def interpret_user_command(
             product_id=db_product.id,
             product_name=db_product.name,
             product_name_ta=db_product.name_ta,
-            quantity=qty,
-            unit=unit,
+            quantity=effective_qty,
+            unit=effective_unit,
             current_stock=current_stock,
             projected_stock=projected_stock,
             unit_price=unit_price,
@@ -1221,11 +1379,11 @@ async def interpret_user_command(
         pending_store.save(pending_action)
         conv.active_product_id = db_product.id
         conv.active_product_name = db_product.name
-        conv.active_product_unit = unit
+        conv.active_product_unit = effective_unit
         conv.pending_action_id = action_id
         conv.last_action = action_name
-        conv.last_quantity = qty
-        conv.last_unit = unit
+        conv.last_quantity = effective_qty
+        conv.last_unit = effective_unit
         conv.updated_at = datetime.now(timezone.utc)
 
         preview = ConfirmationPreview(
@@ -1234,8 +1392,8 @@ async def interpret_user_command(
             product_id=db_product.id,
             product_name=db_product.name,
             product_name_ta=db_product.name_ta,
-            quantity=qty,
-            unit=unit,
+            quantity=effective_qty,
+            unit=effective_unit,
             current_stock=current_stock,
             projected_stock=projected_stock,
             unit_price=unit_price,
@@ -1246,17 +1404,25 @@ async def interpret_user_command(
 
         qty_fmt = int(qty) if qty.is_integer() else qty
         if action_name == "ADD_STOCK":
-            if qty >= 100:
-                msg = f"Large stock addition alert: Ready to add {qty_fmt} {unit} of {db_product.name}. Stock will increase from {current_stock} to {projected_stock} {unit}."
+            if effective_qty >= 100:
+                msg = f"Large stock addition alert: Ready to add {qty_fmt} {unit} of {db_product.name}. Stock will increase from {current_stock} to {projected_stock} {db_product.unit}."
                 msg_ta = f"கவனிக்க: பெரிய அளவு! {qty_fmt} {unit} {prod_disp} சேர்க்க உறுதி செய்யலாமா?"
                 msg_tanglish = f"{db_product.name}-ku {qty_fmt} {unit} periya stock add pannalama?"
             else:
-                msg = f"Ready to add {qty_fmt} {unit} of {db_product.name}. Stock will increase from {current_stock} to {projected_stock} {unit}."
+                msg = f"Ready to add {qty_fmt} {unit} of {db_product.name}. Stock will increase from {current_stock} to {projected_stock} {db_product.unit}."
                 msg_ta = f"{prod_disp} {qty_fmt} {unit} சேர்க்கிறேன். சரிதானா?"
                 msg_tanglish = f"{db_product.name} {qty_fmt} {unit} add pannalama?"
+        elif action_name == "REMOVE_STOCK":
+            msg = f"Ready to remove {qty_fmt} {unit} of {db_product.name} from stock. Stock will decrease from {current_stock} to {projected_stock} {db_product.unit}."
+            msg_ta = f"{prod_disp} இருப்பிலிருந்து {qty_fmt} {unit} குறைக்கவா? மீதமுள்ள இருப்பு {projected_stock} {db_product.unit}."
+            msg_tanglish = f"{db_product.name}-la irundhu {qty_fmt} {unit} remove pannalama? Meedhi stock {projected_stock} {db_product.unit}."
+        elif action_name == "SET_STOCK":
+            msg = f"Ready to adjust {db_product.name} stock to {qty_fmt} {unit}. Current verified stock: {projected_stock} {db_product.unit}."
+            msg_ta = f"{prod_disp} இருப்பை {qty_fmt} {unit} என மாற்றவா?"
+            msg_tanglish = f"{db_product.name} stock {qty_fmt} {unit}-nu set pannalama?"
         else:
-            tot_fmt = int(estimated_total) if estimated_total.is_integer() else estimated_total
-            msg = f"Ready to record sale of {qty_fmt} {unit} of {db_product.name} for ₹{estimated_total}. Remaining stock: {projected_stock} {unit}."
+            tot_fmt = int(estimated_total) if (estimated_total is not None and estimated_total.is_integer()) else (estimated_total or 0)
+            msg = f"Ready to record sale of {qty_fmt} {unit} of {db_product.name} for ₹{estimated_total}. Remaining stock: {projected_stock} {db_product.unit}."
             msg_ta = f"{prod_disp} {qty_fmt} {unit} பில் தயார். மொத்தம் ₹{tot_fmt}. விற்பனையை உறுதி செய்யவா?"
             msg_tanglish = f"{db_product.name} {qty_fmt} {unit} bill podalama? Total ₹{tot_fmt}."
 
@@ -1364,30 +1530,26 @@ async def interpret_user_command(
             )
 
     # =========================================================================
-    # Intent: LOW_STOCK_QUERY
+    # Intent: LOW_STOCK_QUERY & PREDICTIVE REORDER INTELLIGENCE
     # =========================================================================
     if intent.intent == IntentCategory.LOW_STOCK_QUERY:
-        low_stock_prods = (
-            db.query(Product)
-            .filter(Product.is_active == True, Product.quantity <= Product.minimum_stock_level)
-            .all()
-        )
-        count = len(low_stock_prods)
-        names = ", ".join(f"{p.name} ({p.quantity} {p.unit})" for p in low_stock_prods[:5])
-        if count == 0:
-            msg = "All products have adequate stock levels. No low stock alerts right now."
-            msg_ta = "எல்லா பொருட்களும் போதுமான அளவில் உள்ளன. குறைந்த இருப்பு எச்சரிக்கை இல்லை."
-        else:
-            msg = f"{count} products need reordering: {names}."
-            msg_ta = f"குறைந்த இருப்பு உள்ள பொருட்கள்: {names}."
+        intel = analyze_stock_intelligence(db)
+        msg_en = intel["summary_en"]
+        msg_ta = intel["summary_ta"]
+        msg_tanglish = intel["summary_tanglish"]
 
         return InterpretResponse(
             success=True,
             intent=intent,
             requires_confirmation=False,
-            query_result={"low_stock_count": count, "items": [p.name for p in low_stock_prods]},
-            message=msg,
-            message_ta=msg_ta
+            query_result=intel,
+            message=msg_en,
+            message_ta=msg_ta,
+            message_tanglish=msg_tanglish,
+            detected_language=user_lang,
+            spoken_response=format_spoken_response(user_lang, msg_en, msg_ta, msg_tanglish),
+            session_id=effective_session_id,
+            context=conv.to_dict()
         )
 
     # =========================================================================
@@ -1700,6 +1862,59 @@ def confirm_pending_action(db: Session, action_id: str) -> ConfirmActionResponse
             message_ta=msg_ta
         )
 
+    elif action.action == "REMOVE_STOCK":
+        result = stock_service.adjust_stock(
+            db=db,
+            product_id=product.id,
+            adjustment_type=StockAdjustmentType.REMOVE,
+            quantity=action.quantity,
+            reason="Voice stock removal confirmed by merchant",
+            reference_id=f"AI-{action.action_id[:8]}"
+        )
+        stock_int = int(result.new_quantity) if result.new_quantity.is_integer() else result.new_quantity
+        qty_int = int(action.quantity) if action.quantity.is_integer() else action.quantity
+        prod_disp = product.name_ta or product.name
+        msg = f"{qty_int} {action.unit} {product.name} removed from stock. Remaining stock: {stock_int} {product.unit}."
+        msg_ta = f"{qty_int} {action.unit} {prod_disp} இருப்பிலிருந்து நீக்கப்பட்டது. மீதமுள்ள இருப்பு {stock_int} {product.unit}."
+
+        return ConfirmActionResponse(
+            success=True,
+            action="REMOVE_STOCK",
+            transaction_id=f"AI-{action.action_id[:8]}",
+            product_name=product.name,
+            previous_stock=prev_stock,
+            new_stock=result.new_quantity,
+            total_amount=None,
+            message=msg,
+            message_ta=msg_ta
+        )
+
+    elif action.action == "SET_STOCK":
+        result = stock_service.adjust_stock(
+            db=db,
+            product_id=product.id,
+            adjustment_type=StockAdjustmentType.SET,
+            quantity=action.quantity,
+            reason="Voice physical stock adjustment confirmed by merchant",
+            reference_id=f"AI-{action.action_id[:8]}"
+        )
+        stock_int = int(result.new_quantity) if result.new_quantity.is_integer() else result.new_quantity
+        prod_disp = product.name_ta or product.name
+        msg = f"{product.name} physical stock updated to {stock_int} {product.unit}."
+        msg_ta = f"{prod_disp} இருப்பு {stock_int} {product.unit} என மாற்றப்பட்டது."
+
+        return ConfirmActionResponse(
+            success=True,
+            action="SET_STOCK",
+            transaction_id=f"AI-{action.action_id[:8]}",
+            product_name=product.name,
+            previous_stock=prev_stock,
+            new_stock=result.new_quantity,
+            total_amount=None,
+            message=msg,
+            message_ta=msg_ta
+        )
+
     elif action.action == "SELL_PRODUCT":
         if action.items:
             # Multi-item sale transaction
@@ -1707,12 +1922,13 @@ def confirm_pending_action(db: Session, action_id: str) -> ConfirmActionResponse
             for it in action.items:
                 p_item = db.query(Product).filter(Product.id == it["product_id"]).first()
                 p_name = it.get("product_name") or it.get("name")
-                if not p_item or p_item.quantity < it["quantity"]:
+                deduct_qty = float(it.get("base_quantity") or it["quantity"])
+                if not p_item or p_item.quantity < deduct_qty:
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail=f"Insufficient stock for '{p_name}'."
                     )
-                sale_items.append(SaleItemCreate(product_id=it["product_id"], quantity=it["quantity"]))
+                sale_items.append(SaleItemCreate(product_id=it["product_id"], quantity=deduct_qty))
 
             sale_in = SaleCreate(
                 items=sale_items,

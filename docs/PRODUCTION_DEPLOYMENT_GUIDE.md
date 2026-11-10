@@ -129,3 +129,4 @@ Open `frontend/js/env.js` and set your Render URL:
 window.__API_BASE_URL__ = "https://your-service.onrender.com/api";
 ```
 Alternatively, navigate to **Store Settings** in the UI and enter your backend URL in the **Backend API URL** field. It is saved in `localStorage` and persists across sessions.
+

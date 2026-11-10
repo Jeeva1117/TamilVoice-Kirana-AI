@@ -122,18 +122,79 @@ def _match_product_from_text(lower_text: str) -> Tuple[Optional[str], str, Optio
         return "Tomato", "kg", "தக்காளி"
     if any(w in lower_text for w in ["onion", "vengayam", "வெங்காயம்"]):
         return "Onion", "kg", "வெங்காயம்"
-    if any(w in lower_text for w in ["tea powder", "டீ தூள்", "தேயிலை தூள்", "தேயிலை", "டீ", "tea"]):
+    if any(w in lower_text for w in ["tea powder", "டீ தூள்", "தேயிலை தூள்", "தேயிலை", "டீ"]):
         return "Tea Powder", "packet", "டீ தூள்"
     if any(w in lower_text for w in ["masala", "மசாலா"]):
-        return "Masala Powder", "kg", "மசாலா"
+        return "Masala Powder", "packet", "மசாலா"
     if any(w in lower_text for w in ["milk", "paal", "பால்"]):
         return "Milk", "litre", "பால்"
     if any(w in lower_text for w in ["sugar", "sarkarai", "sakkarai", "seeni", "சர்க்கரை", "சீனி"]):
-        return "Sugar", "packet", "சர்க்கரை"
+        return "Sugar", "kg", "சர்க்கரை"
     if any(w in lower_text for w in ["rice", "arisi", "ponni", "அரிசி"]):
         return "Ponni Boiled Rice", "kg", "அரிசி"
     if any(w in lower_text for w in ["honey", "thean", "then", "தேன்"]):
         return "Pure Honey", "bottle", "தேன்"
+    if any(w in lower_text for w in ["country ginger", "ginger", "inji", "injii", "இஞ்சி"]):
+        return "Ginger", "kg", "இஞ்சி"
+    if any(w in lower_text for w in ["country garlic", "garlic", "poondu", "பூண்டு"]):
+        return "Country Garlic", "kg", "பூண்டு"
+    if any(w in lower_text for w in ["potato", "urulaikilangu", "urulai", "உருளைக்கிழங்கு"]):
+        return "Potato", "kg", "உருளைக்கிழங்கு"
+    if any(w in lower_text for w in ["carrot", "கேரட்"]):
+        return "Carrot", "kg", "கேரட்"
+    if any(w in lower_text for w in ["green chilli", "pachai milagai", "பச்சை மிளகாய்"]):
+        return "Green Chilli", "kg", "பச்சை மிளகாய்"
+    if any(w in lower_text for w in ["apple", "ஆப்பிள்"]):
+        return "Apple", "kg", "ஆப்பிள்"
+    if any(w in lower_text for w in ["banana", "vazhaipazham", "வாழைப்பழம்"]):
+        return "Banana", "dozen", "வாழைப்பழம்"
+    if any(w in lower_text for w in ["tata salt", "salt", "uppu", "உப்பு"]):
+        return "Tata Salt", "packet", "உப்பு"
+    if any(w in lower_text for w in ["toor dal", "tuvaram", "துவரம்"]):
+        return "Toor Dal", "kg", "துவரம் பருப்பு"
+    if any(w in lower_text for w in ["urad dal", "ulundhu", "உளுந்து"]):
+        return "Urad Dal", "kg", "உளுத்தம் பருப்பு"
+    if any(w in lower_text for w in ["ghee", "nei", "நெய்"]):
+        return "Ghee", "bottle", "நெய்"
+    if any(w in lower_text for w in ["maida", "மைதா"]):
+        return "Maida", "kg", "மைதா"
+    if any(w in lower_text for w in ["rava", "sooji", "ரவை"]):
+        return "Rava", "kg", "ரவை"
+    if any(w in lower_text for w in ["milk bread", "bread", "பிரெட்"]):
+        return "Milk Bread", "packet", "பிரெட்"
+    if any(w in lower_text for w in ["marie gold", "biscuit", "biscuits", "பிஸ்கட்"]):
+        return "Marie Gold Biscuits", "packet", "பிஸ்கட்"
+    if any(w in lower_text for w in ["dairy milk", "chocolate", "chocolates", "சாக்லேட்"]):
+        return "Dairy Milk Chocolate", "piece", "சாக்லேட்"
+    if any(w in lower_text for w in ["potato chips", "chips", "snacks", "சிப்ஸ்"]):
+        return "Potato Chips Snacks", "packet", "ஸ்நாக்ஸ்"
+    if any(w in lower_text for w in ["clinic plus", "shampoo", "ஷாம்பு"]):
+        return "Clinic Plus Shampoo", "bottle", "ஷாம்பு"
+    if any(w in lower_text for w in ["hair serum", "serum", "சீரம்"]):
+        return "Hair Serum", "bottle", "ஹேர் சீரம்"
+    if any(w in lower_text for w in ["hamam", "soap", "சோப்பு"]):
+        return "Hamam Soap", "piece", "சோப்பு"
+    if any(w in lower_text for w in ["colgate", "toothpaste", "டூத்பேஸ்ட்"]):
+        return "Colgate Toothpaste", "piece", "டூத்பேஸ்ட்"
+    if any(w in lower_text for w in ["notebook", "classmate", "நோட்டு"]):
+        return "Classmate Notebook", "piece", "நோட்டுப் புத்தகம்"
+    if any(w in lower_text for w in ["reynolds", "ball pen", "pen", "paena", "பேனா"]):
+        if "pencil" not in lower_text and "பென்சில்" not in lower_text:
+            return "Reynolds Ball Pen", "piece", "பேனா"
+    if any(w in lower_text for w in ["scale", "ruler", "ஸ்கேல்"]):
+        return "Plastic Scale 30cm", "piece", "ஸ்கேல்"
+    if any(w in lower_text for w in ["pencil", "apsara", "பென்சில்"]):
+        return "Apsara Pencil Box", "packet", "பென்சில்"
+    if any(w in lower_text for w in ["eraser", "rubber", "அழிப்பான்"]):
+        return "Dust-Free Eraser", "piece", "அழிப்பான்"
+    if any(w in lower_text for w in ["paper", "copier", "பேப்பர்"]):
+        return "A4 Copier Paper", "packet", "பேப்பர்"
+    if any(w in lower_text for w in ["battery", "batteries", "aa battery", "பேட்டரி"]):
+        return "AA Battery", "piece", "பேட்டரி"
+    if any(w in lower_text for w in ["surf excel", "detergent", "சோப்புத்தூள்"]):
+        return "Surf Excel Detergent", "packet", "டிட்டர்ஜென்ட்"
+    if any(w in lower_text for w in ["vim", "dishwash", "டிஷ்வாஷ்"]):
+        return "Vim Dishwash Liquid", "bottle", "டிஷ்வாஷ்"
     return None, "kg", None
 
 
@@ -427,6 +488,44 @@ class MockIntentProvider(IntentProvider):
             )
 
         # -----------------------------------------------------------------
+        # Pattern 5B: REMOVE_STOCK
+        # "2 kilo rice stock remove pannu", "5 kilo sugar remove pannu", "கழி"
+        # -----------------------------------------------------------------
+        if ("remove" in lower or "korainga" in lower or "கழி" in lower) and ("stock" in lower or "இருப்பு" in lower or "சரக்கு" in lower or "kilo" in lower or "kg" in lower or "packet" in lower):
+            prod = prod or "Ponni Boiled Rice"
+            qty_match = re.search(r"(\d+(\.\d+)?)", lower)
+            qty = float(qty_match.group(1)) if qty_match else 1.0
+
+            return CommandIntent(
+                intent=IntentCategory.REMOVE_STOCK,
+                language=detected_lang,
+                original_text=raw,
+                normalized_text=f"Remove {qty} {unit} {prod} from stock",
+                entities=CommandEntities(product_name=prod, quantity=qty, unit=unit),
+                confidence=0.98,
+                requires_clarification=False,
+            )
+
+        # -----------------------------------------------------------------
+        # Pattern 5C: SET_STOCK (Adjust verified physical stock)
+        # "Onion stock 50 kilo irukku nu update pannu", "Set tomato stock to 20 kg"
+        # -----------------------------------------------------------------
+        if ("stock" in lower) and ("update" in lower or "adjust" in lower or "set" in lower or "irukku nu update" in lower) and not ("price" in lower or "rate" in lower or "vilai" in lower or "விலை" in lower):
+            prod = prod or "Ponni Boiled Rice"
+            qty_match = re.search(r"(\d+(\.\d+)?)", lower)
+            qty = float(qty_match.group(1)) if qty_match else 10.0
+
+            return CommandIntent(
+                intent=IntentCategory.SET_STOCK,
+                language=detected_lang,
+                original_text=raw,
+                normalized_text=f"Set verified physical stock for {prod} to {qty} {unit}",
+                entities=CommandEntities(product_name=prod, quantity=qty, unit=unit),
+                confidence=0.98,
+                requires_clarification=False,
+            )
+
+        # -----------------------------------------------------------------
         # Pattern 6: SELL_PRODUCT (Single Item or Fragmented e.g. "Tomato one kg", "தக்காளி ஒரு கிலோ")
         # -----------------------------------------------------------------
         if ("sell" in lower or "sale" in lower or "விற்று" in lower or "விற்பனை" in lower or "kuduthuten" in lower or (prod and re.search(r"\d+(\.\d+)?", lower))) and not ("evlo" in lower or "ethana" in lower or "report" in lower or "best" in lower or "top" in lower or "count" in lower or "எவ்வளவு" in lower or "இல்லையா" in lower or "stock" in lower):
@@ -446,15 +545,15 @@ class MockIntentProvider(IntentProvider):
             )
 
         # -----------------------------------------------------------------
-        # Pattern 7: LOW_STOCK_QUERY
-        # "Low stock products sollu", "Low stock products sollunga", "குறைந்த இருப்பு"
+        # Pattern 7: LOW_STOCK_QUERY & REORDER INTELLIGENCE
+        # "Low stock products sollu", "Naalaikku entha products stock out aagum?", "What should I reorder tomorrow?", "குறைந்த இருப்பு"
         # -----------------------------------------------------------------
-        if "kammi" in lower or "low stock" in lower or "குறைந்த" in lower or "out of stock" in lower:
+        if any(kw in lower for kw in ["kammi", "low stock", "குறைந்த", "out of stock", "stock out", "naalaikku", "reorder", "running low", "தீர்ந்துபோகும்"]):
             return CommandIntent(
                 intent=IntentCategory.LOW_STOCK_QUERY,
                 language="Tamil" if is_tamil_script else "Tanglish",
                 original_text=raw,
-                normalized_text="List low stock products",
+                normalized_text="List low stock and future stock-out reorder intelligence",
                 entities=CommandEntities(),
                 confidence=0.98,
                 requires_clarification=False,
@@ -486,6 +585,21 @@ class MockIntentProvider(IntentProvider):
                 original_text=raw,
                 normalized_text="Show today sales revenue and bill count",
                 entities=CommandEntities(date="today"),
+                confidence=0.98,
+                requires_clarification=False,
+            )
+
+        # -----------------------------------------------------------------
+        # Pattern 9B: INVENTORY_REPORT
+        # "Total inventory value evlo?", "Inventory valuation", "மொத்த இருப்பு மதிப்பு"
+        # -----------------------------------------------------------------
+        if "inventory" in lower or "இருப்பு மதிப்பு" in lower or "stock value" in lower:
+            return CommandIntent(
+                intent=IntentCategory.INVENTORY_REPORT,
+                language="Tamil" if is_tamil_script else "Tanglish",
+                original_text=raw,
+                normalized_text="Calculate total inventory valuation across active catalog",
+                entities=CommandEntities(),
                 confidence=0.98,
                 requires_clarification=False,
             )

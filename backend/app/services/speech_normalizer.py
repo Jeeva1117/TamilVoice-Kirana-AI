@@ -214,6 +214,19 @@ UNIT_MAPPINGS: Dict[str, str] = {
     "gms": "g",
     "g": "g",
     "கிராம்": "g",
+    "mg": "mg",
+    "milligram": "mg",
+    "ml": "ml",
+    "millilitre": "ml",
+    "மில்லி": "ml",
+    "dozen": "dozen",
+    "dozens": "dozen",
+    "டஜன்": "dozen",
+    "box": "box",
+    "boxes": "box",
+    "பெட்டி": "box",
+    "bundle": "bundle",
+    "bundles": "bundle",
 }
 
 # Known Kirana product canonical mappings for extraction
@@ -409,6 +422,86 @@ PRODUCT_CANONICAL_MAP: Dict[str, str] = {
     "paper": "A4 Copier Paper",
     "தாள்": "A4 Copier Paper",
     "பேப்பர்": "A4 Copier Paper",
+
+    # Vegetables: Ginger, Potato, Carrot, Green Chilli
+    "country ginger": "Ginger",
+    "ginger": "Ginger",
+    "inji": "Ginger",
+    "injii": "Ginger",
+    "இஞ்சி": "Ginger",
+    "பச்சை இஞ்சி": "Ginger",
+
+    "potato": "Potato",
+    "potatoes": "Potato",
+    "urulaikilangu": "Potato",
+    "urulai": "Potato",
+    "உருளைக்கிழங்கு": "Potato",
+    "உருளை": "Potato",
+
+    "carrot": "Carrot",
+    "carrots": "Carrot",
+    "carrat": "Carrot",
+    "கேரட்": "Carrot",
+
+    "green chilli": "Green Chilli",
+    "pachai milagai": "Green Chilli",
+    "பச்சை மிளகாய்": "Green Chilli",
+
+    # Fruits: Apple & Banana
+    "apple": "Apple",
+    "apples": "Apple",
+    "ஆப்பிள்": "Apple",
+
+    "banana": "Banana",
+    "bananas": "Banana",
+    "vazhaipazham": "Banana",
+    "vaazhai": "Banana",
+    "வாழைப்பழம்": "Banana",
+
+    # Dals & Flours: Toor Dal, Urad Dal, Ghee, Maida, Rava
+    "toor dal": "Toor Dal",
+    "tuvaram": "Toor Dal",
+    "துவரம்": "Toor Dal",
+    "துவரம் பருப்பு": "Toor Dal",
+
+    "urad dal": "Urad Dal",
+    "ulundhu": "Urad Dal",
+    "உளுந்து": "Urad Dal",
+    "உளுத்தம் பருப்பு": "Urad Dal",
+
+    "ghee": "Ghee",
+    "nei": "Ghee",
+    "நெய்": "Ghee",
+
+    "maida maavu": "Maida",
+    "maida": "Maida",
+    "மைதா": "Maida",
+
+    "rava": "Rava",
+    "sooji": "Rava",
+    "ரவை": "Rava",
+
+    # Household: Battery, Detergent, Dishwash
+    "aa battery": "AA Battery",
+    "battery": "AA Battery",
+    "batteries": "AA Battery",
+    "cell": "AA Battery",
+    "பேட்டரி": "AA Battery",
+
+    "surf excel detergent": "Surf Excel Detergent",
+    "surf excel": "Surf Excel Detergent",
+    "surf": "Surf Excel Detergent",
+    "detergent": "Surf Excel Detergent",
+    "washing powder": "Surf Excel Detergent",
+    "சோப்புத்தூள்": "Surf Excel Detergent",
+    "டிட்டர்ஜென்ட்": "Surf Excel Detergent",
+
+    "vim dishwash liquid": "Vim Dishwash Liquid",
+    "vim dishwash": "Vim Dishwash Liquid",
+    "dishwash": "Vim Dishwash Liquid",
+    "vim": "Vim Dishwash Liquid",
+    "vim gel": "Vim Dishwash Liquid",
+    "டிஷ்வாஷ்": "Vim Dishwash Liquid",
 }
 
 DEFAULT_PRODUCT_UNITS: Dict[str, str] = {
@@ -445,6 +538,20 @@ DEFAULT_PRODUCT_UNITS: Dict[str, str] = {
     "Dust-Free Eraser": "piece",
     "Non-Dust Eraser": "piece",
     "A4 Copier Paper": "packet",
+    "Ginger": "kg",
+    "Potato": "kg",
+    "Carrot": "kg",
+    "Green Chilli": "kg",
+    "Apple": "kg",
+    "Banana": "dozen",
+    "Ghee": "bottle",
+    "Maida": "kg",
+    "Rava": "kg",
+    "Toor Dal": "kg",
+    "Urad Dal": "kg",
+    "AA Battery": "piece",
+    "Surf Excel Detergent": "packet",
+    "Vim Dishwash Liquid": "bottle",
 }
 
 

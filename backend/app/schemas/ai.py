@@ -7,6 +7,8 @@ from pydantic import BaseModel, Field, ConfigDict, field_validator, model_valida
 
 class IntentCategory(str, Enum):
     ADD_STOCK = "ADD_STOCK"
+    REMOVE_STOCK = "REMOVE_STOCK"
+    SET_STOCK = "SET_STOCK"
     SELL_PRODUCT = "SELL_PRODUCT"
     CHECK_STOCK = "CHECK_STOCK"
     LOW_STOCK_QUERY = "LOW_STOCK_QUERY"
@@ -105,7 +107,9 @@ class CommandIntent(BaseModel):
         mapping = {
             "check_stock": IntentCategory.CHECK_STOCK,
             "add_stock": IntentCategory.ADD_STOCK,
-            "remove_stock": IntentCategory.SELL_PRODUCT,
+            "remove_stock": IntentCategory.REMOVE_STOCK,
+            "set_stock": IntentCategory.SET_STOCK,
+            "adjust_stock": IntentCategory.SET_STOCK,
             "create_bill": IntentCategory.SELL_PRODUCT,
             "sell_product": IntentCategory.SELL_PRODUCT,
             "check_sales": IntentCategory.SALES_REPORT,
@@ -154,8 +158,8 @@ class CommandIntent(BaseModel):
                 else:
                     self.clarification_question = "Sorry, which product are you referring to?"
 
-        # 2. ADD_STOCK & SELL_PRODUCT require product_name and quantity (or items list)
-        if self.intent in (IntentCategory.ADD_STOCK, IntentCategory.SELL_PRODUCT):
+        # 2. Stock mutations require product_name and quantity (or items list)
+        if self.intent in (IntentCategory.ADD_STOCK, IntentCategory.REMOVE_STOCK, IntentCategory.SET_STOCK, IntentCategory.SELL_PRODUCT):
             has_items = bool(self.entities.items and len(self.entities.items) > 0)
             if not has_items:
                 if not self.entities.product_name or not self.entities.product_name.strip():

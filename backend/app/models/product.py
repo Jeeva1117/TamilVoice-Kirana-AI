@@ -18,6 +18,8 @@ class Product(Base):
     purchase_price = Column(Float, nullable=False, default=0.0)
     selling_price = Column(Float, nullable=False, default=0.0)
     minimum_stock_level = Column(Float, nullable=False, default=10.0)
+    reorder_level = Column(Float, nullable=True, default=15.0)
+    aliases = Column(Text, nullable=True)
     description = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True, index=True, nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)

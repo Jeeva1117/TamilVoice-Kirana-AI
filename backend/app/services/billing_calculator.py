@@ -6,8 +6,9 @@ Formula:
     grand_total = subtotal + configured_taxes - configured_discounts
 """
 from decimal import Decimal, ROUND_HALF_UP, InvalidOperation
-from typing import List, Dict, Any, Optional, Union
+from typing import List, Dict, Any, Optional, Union, Tuple
 from pydantic import BaseModel, Field, ConfigDict
+from backend.app.services.unit_converter import convert_quantity_to_base, canonical_unit
 
 
 def to_decimal(val: Union[Decimal, float, int, str, None], default: str = "0.00") -> Decimal:
@@ -33,15 +34,18 @@ def quantize_currency(amount: Union[Decimal, float, int, str]) -> Decimal:
 def calculate_line_item(
     quantity: Union[Decimal, float, int, str],
     unit_price: Union[Decimal, float, int, str],
-    unit: str = "unit"
+    unit: str = "unit",
+    base_unit: Optional[str] = None,
+    product_name: str = "product"
 ) -> Decimal:
     """
     Calculate line total for a single product line item:
-        line_total = quantity × unit_price
+        line_total = converted_quantity × unit_price
     Guarantees:
         2 kg @ ₹40/kg = ₹80.00
         1 kg @ ₹40/kg = ₹40.00
-        12 kg @ ₹55/kg = ₹660.00
+        200 g @ ₹100/kg = ₹20.00
+        500 ml @ ₹140/litre = ₹70.00
     """
     qty_dec = to_decimal(quantity)
     price_dec = to_decimal(unit_price)
@@ -51,8 +55,41 @@ def calculate_line_item(
     if price_dec < Decimal("0"):
         raise ValueError(f"Unit price cannot be negative (got ₹{unit_price}).")
 
-    raw_total = qty_dec * price_dec
+    if base_unit and canonical_unit(unit) != canonical_unit(base_unit):
+        converted_qty, _ = convert_quantity_to_base(qty_dec, from_unit=unit, to_unit=base_unit, product_name=product_name)
+    else:
+        converted_qty = qty_dec
+
+    raw_total = converted_qty * price_dec
     return raw_total.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
+def calculate_line_item_with_conversion(
+    quantity: Union[Decimal, float, int, str],
+    unit_price: Union[Decimal, float, int, str],
+    requested_unit: str = "unit",
+    base_unit: Optional[str] = None,
+    product_name: str = "product"
+) -> Tuple[Decimal, Decimal]:
+    """
+    Calculate line total and converted quantity in product base units.
+    Returns: (line_total_dec, converted_quantity_dec)
+    """
+    qty_dec = to_decimal(quantity)
+    price_dec = to_decimal(unit_price)
+
+    if qty_dec <= Decimal("0"):
+        raise ValueError(f"Quantity must be strictly positive (got {quantity} {requested_unit}).")
+    if price_dec < Decimal("0"):
+        raise ValueError(f"Unit price cannot be negative (got ₹{unit_price}).")
+
+    if base_unit and canonical_unit(requested_unit) != canonical_unit(base_unit):
+        converted_qty, _ = convert_quantity_to_base(qty_dec, from_unit=requested_unit, to_unit=base_unit, product_name=product_name)
+    else:
+        converted_qty = qty_dec
+
+    raw_total = converted_qty * price_dec
+    return raw_total.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP), converted_qty
 
 
 class CalculatedLineItem(BaseModel):
@@ -115,11 +152,18 @@ def calculate_bill(
         qty = it.get("quantity")
         price = it.get("unit_price")
         unit = str(it.get("unit") or "unit").strip()
+        base_unit = str(it.get("base_unit") or unit).strip()
 
         if price is None:
             raise ValueError(f"Product '{prod_name}' has no configured selling price in database.")
 
-        line_tot_dec = calculate_line_item(quantity=qty, unit_price=price, unit=unit)
+        line_tot_dec, converted_qty_dec = calculate_line_item_with_conversion(
+            quantity=qty,
+            unit_price=price,
+            requested_unit=unit,
+            base_unit=base_unit,
+            product_name=prod_name
+        )
         subtotal_dec += line_tot_dec
         total_qty_dec += to_decimal(qty)
 

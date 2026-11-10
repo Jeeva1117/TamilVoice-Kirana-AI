@@ -198,6 +198,73 @@ SYNONYM_KEYWORDS = {
     "ulundhu": ["urad", "உளுந்து"],
     "உளுந்து": ["urad", "உளுந்து"],
     "உளுத்தம் பருப்பு": ["urad", "உளுந்து"],
+
+    # Ginger / Inji
+    "ginger": ["ginger", "inji", "இஞ்சி"],
+    "inji": ["ginger", "inji", "இஞ்சி"],
+    "injii": ["ginger", "inji", "இஞ்சி"],
+    "இஞ்சி": ["ginger", "inji", "இஞ்சி"],
+    "பச்சை இஞ்சி": ["ginger", "inji", "இஞ்சி"],
+
+    # Potato / Urulaikilangu
+    "potato": ["potato", "urulaikilangu", "உருளைக்கிழங்கு"],
+    "potatoes": ["potato", "urulaikilangu", "உருளைக்கிழங்கு"],
+    "urulaikilangu": ["potato", "urulaikilangu", "உருளைக்கிழங்கு"],
+    "urulai": ["potato", "urulaikilangu", "உருளைக்கிழங்கு"],
+    "உருளைக்கிழங்கு": ["potato", "urulaikilangu", "உருளைக்கிழங்கு"],
+    "உருளை": ["potato", "urulaikilangu", "உருளைக்கிழங்கு"],
+
+    # Carrot
+    "carrot": ["carrot", "கேரட்"],
+    "carrots": ["carrot", "கேரட்"],
+    "carrat": ["carrot", "கேரட்"],
+    "கேரட்": ["carrot", "கேரட்"],
+
+    # Green Chilli
+    "green chilli": ["green chilli", "pachai milagai", "பச்சை மிளகாய்"],
+    "pachai milagai": ["green chilli", "pachai milagai", "பச்சை மிளகாய்"],
+    "பச்சை மிளகாய்": ["green chilli", "pachai milagai", "பச்சை மிளகாய்"],
+
+    # Fruits: Apple & Banana
+    "apple": ["apple", "ஆப்பிள்"],
+    "apples": ["apple", "ஆப்பிள்"],
+    "ஆப்பிள்": ["apple", "ஆப்பிள்"],
+    "banana": ["banana", "vazhaipazham", "வாழைப்பழம்"],
+    "bananas": ["banana", "vazhaipazham", "வாழைப்பழம்"],
+    "vazhaipazham": ["banana", "vazhaipazham", "வாழைப்பழம்"],
+    "வாழைப்பழம்": ["banana", "vazhaipazham", "வாழைப்பழம்"],
+
+    # Ghee
+    "ghee": ["ghee", "nei", "நெய்"],
+    "nei": ["ghee", "nei", "நெய்"],
+    "நெய்": ["ghee", "nei", "நெய்"],
+
+    # Maida & Rava
+    "maida": ["maida", "மைதா"],
+    "maida maavu": ["maida", "மைதா"],
+    "மைதா": ["maida", "மைதா"],
+    "rava": ["rava", "sooji", "ரவை"],
+    "sooji": ["rava", "sooji", "ரவை"],
+    "ரவை": ["rava", "sooji", "ரவை"],
+
+    # Household: Battery, Detergent, Dishwash
+    "battery": ["battery", "பேட்டரி"],
+    "batteries": ["battery", "பேட்டரி"],
+    "aa battery": ["battery", "பேட்டரி"],
+    "cell": ["battery", "பேட்டரி"],
+    "பேட்டரி": ["battery", "பேட்டரி"],
+
+    "detergent": ["detergent", "surf excel", "சோப்புத்தூள்", "டிட்டர்ஜென்ட்"],
+    "surf excel": ["detergent", "surf excel", "சோப்புத்தூள்", "டிட்டர்ஜென்ட்"],
+    "surf": ["detergent", "surf excel", "சோப்புத்தூள்", "டிட்டர்ஜென்ட்"],
+    "washing powder": ["detergent", "surf excel", "சோப்புத்தூள்", "டிட்டர்ஜென்ட்"],
+    "சோப்புத்தூள்": ["detergent", "surf excel", "சோப்புத்தூள்", "டிட்டர்ஜென்ட்"],
+    "டிட்டர்ஜென்ட்": ["detergent", "surf excel", "சோப்புத்தூள்", "டிட்டர்ஜென்ட்"],
+
+    "dishwash": ["dishwash", "vim", "டிஷ்வாஷ்"],
+    "vim": ["dishwash", "vim", "டிஷ்வாஷ்"],
+    "vim liquid": ["dishwash", "vim", "டிஷ்வாஷ்"],
+    "டிஷ்வாஷ்": ["dishwash", "vim", "டிஷ்வாஷ்"],
 }
 
 # Generic category terms that intentionally map to multiple catalog items
@@ -312,6 +379,27 @@ def resolve_product(
     elif len(exact_matches) > 1:
         return ResolutionStatus.MULTIPLE_MATCHES, None, [to_resolved_schema(p) for p in exact_matches]
 
+    # 3B. Database Configured Aliases Matching (Dynamic custom aliases configured in catalog)
+    try:
+        alias_matches = db.query(Product).filter(
+            Product.is_active == True,
+            or_(
+                Product.aliases.ilike(f"%{cleaned}%"),
+                Product.aliases.ilike(f"{cleaned}%"),
+                Product.aliases.ilike(f"%, {cleaned},%"),
+                Product.aliases.ilike(f"%, {cleaned}%"),
+            )
+        ).all()
+        if cleaned in ("pen", "பேனா"):
+            alias_matches = [p for p in alias_matches if "pencil" not in p.name.lower()]
+        if len(alias_matches) == 1:
+            return ResolutionStatus.MATCH, to_resolved_schema(alias_matches[0]), []
+        elif len(alias_matches) > 1:
+            return ResolutionStatus.MULTIPLE_MATCHES, None, [to_resolved_schema(p) for p in alias_matches]
+    except Exception:
+        # Fallback if aliases column is not yet populated
+        pass
+
     # 4. Partial substring matching on name and Tamil name
     if cleaned == "oil":
         substring_matches = db.query(Product).filter(
@@ -363,5 +451,30 @@ def resolve_product(
                 return ResolutionStatus.MATCH, to_resolved_schema(matched[0]), []
             elif len(matched) > 1:
                 return ResolutionStatus.MULTIPLE_MATCHES, None, [to_resolved_schema(p) for p in matched]
+
+    # 6. Fuzzy matching fallback using difflib across active catalog
+    import difflib
+    all_prods = db.query(Product).filter(Product.is_active == True).all()
+    candidate_tokens_map = {}
+    for p in all_prods:
+        candidate_tokens_map[p.name.lower()] = p
+        if p.name_ta:
+            candidate_tokens_map[p.name_ta.lower()] = p
+        if getattr(p, "aliases", None):
+            for al in p.aliases.split(","):
+                al_clean = al.strip().lower()
+                if al_clean and len(al_clean) > 2:
+                    candidate_tokens_map[al_clean] = p
+
+    close_keys = difflib.get_close_matches(cleaned, candidate_tokens_map.keys(), n=3, cutoff=0.78)
+    if close_keys:
+        matched_dict = {candidate_tokens_map[k].id: candidate_tokens_map[k] for k in close_keys}
+        matched_prods = list(matched_dict.values())
+        if cleaned in ("pen", "பேனா"):
+            matched_prods = [p for p in matched_prods if "pencil" not in p.name.lower()]
+        if len(matched_prods) == 1:
+            return ResolutionStatus.MATCH, to_resolved_schema(matched_prods[0]), []
+        elif len(matched_prods) > 1:
+            return ResolutionStatus.MULTIPLE_MATCHES, None, [to_resolved_schema(p) for p in matched_prods]
 
     return ResolutionStatus.NO_MATCH, None, []

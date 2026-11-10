@@ -19,3 +19,4 @@ services:
         sync: false
       - key: TIMEZONE
         value: Asia/Kolkata
+

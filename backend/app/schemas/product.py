@@ -14,6 +14,8 @@ class ProductBase(BaseModel):
     purchase_price: float = Field(0.0, ge=0.0, description="Cost price per unit")
     selling_price: float = Field(..., gt=0.0, description="Selling price per unit")
     minimum_stock_level: float = Field(10.0, ge=0.0, description="Threshold for low stock alert")
+    reorder_level: Optional[float] = Field(15.0, ge=0.0, description="Suggested reorder threshold")
+    aliases: Optional[str] = Field(None, description="Comma-separated aliases or multilingual keywords")
     description: Optional[str] = Field(None, description="Optional product description")
     is_active: bool = Field(True, description="Active status for soft delete")
 
@@ -32,6 +34,8 @@ class ProductUpdate(BaseModel):
     purchase_price: Optional[float] = Field(None, ge=0.0)
     selling_price: Optional[float] = Field(None, gt=0.0)
     minimum_stock_level: Optional[float] = Field(None, ge=0.0)
+    reorder_level: Optional[float] = Field(None, ge=0.0)
+    aliases: Optional[str] = None
     description: Optional[str] = None
     is_active: Optional[bool] = None
 
