@@ -3,6 +3,7 @@ services:
     name: tamilvoice-kirana-api
     runtime: python
     buildCommand: pip install -r backend/requirements.txt
+    preDeployCommand: python -m backend.app.run_migrations
     startCommand: uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION

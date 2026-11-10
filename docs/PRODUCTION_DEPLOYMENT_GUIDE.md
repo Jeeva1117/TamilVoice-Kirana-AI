@@ -78,7 +78,11 @@ python -m backend.app.test_postgres_connection --url "YOUR_SUPABASE_POSTGRES_URL
 - **Root Directory:** `.`
 - **Runtime:** `Python`
 - **Build Command:** `pip install -r backend/requirements.txt`
+- **Pre-Deploy Command:** `python -m backend.app.run_migrations`
 - **Start Command:** `uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT`
+
+> [!NOTE]
+> `python -m backend.app.run_migrations` executes all Alembic migrations (`e2d3530619fb` -> `a3f129c58b04`) against your PostgreSQL database before starting the web server. It strictly prohibits running SQLite in production, validates database connectivity, and seeds default Kirana items if deploying to a fresh database.
 
 ### Step 3.3: Environment Variables
 Configure the following in the Render dashboard:

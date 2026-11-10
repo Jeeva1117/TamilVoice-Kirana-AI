@@ -240,3 +240,4 @@ def analyze_stock_intelligence(
         "summary_ta": summary_ta,
         "summary_tanglish": summary_tanglish,
     }
+

@@ -14,9 +14,16 @@ ROOT_DIR = BACKEND_DIR.parent
 _backend_env = dotenv_values(BACKEND_DIR / ".env")
 _root_env = dotenv_values(ROOT_DIR / ".env")
 
-# Populate process environment (backend takes precedence over root)
+# Capture existing process environment variables before loading .env files so cloud platform
+# variables (Render, Supabase, Docker, system environment) always take highest priority
+_process_env = dict(os.environ)
+
+# Populate process environment (backend/.env takes precedence over root .env)
 load_dotenv(ROOT_DIR / ".env")
 load_dotenv(BACKEND_DIR / ".env", override=True)
+
+# Re-apply process environment variables so platform-level variables (e.g. Render DATABASE_URL) are never overwritten
+os.environ.update(_process_env)
 
 
 def _get_config_value(key: str, default: str = "") -> str:

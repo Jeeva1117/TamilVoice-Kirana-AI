@@ -14,6 +14,21 @@ if raw_db_url.startswith("postgres://"):
 is_sqlite = raw_db_url.startswith("sqlite")
 is_postgres = raw_db_url.startswith("postgresql")
 
+is_production = (
+    os.getenv("RENDER") is not None
+    or os.getenv("ENVIRONMENT", "").lower() == "production"
+    or os.getenv("APP_ENV", "").lower() == "production"
+    or getattr(settings, "ENVIRONMENT", "").lower() == "production"
+    or getattr(settings, "APP_ENV", "").lower() == "production"
+)
+
+if is_production and is_sqlite:
+    raise RuntimeError(
+        "CRITICAL DATABASE ERROR: Running with SQLite in production on Render is prohibited. "
+        "Render web service containers have ephemeral storage; all data will be lost on container restart. "
+        "Please configure DATABASE_URL in your Render Environment Variables with your PostgreSQL connection string."
+    )
+
 engine_kwargs = {
     "echo": False,
     "future": True,
