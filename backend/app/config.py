@@ -20,14 +20,14 @@ load_dotenv(BACKEND_DIR / ".env", override=True)
 
 
 def _get_config_value(key: str, default: str = "") -> str:
-    """Read configuration value prioritizing backend/.env, then root .env, then process environment."""
+    """Read configuration value prioritizing process environment, then backend/.env, then root .env."""
+    val = os.getenv(key)
+    if val is not None and str(val).strip():
+        return str(val).strip()
     val = _backend_env.get(key)
     if val is not None and str(val).strip():
         return str(val).strip()
     val = _root_env.get(key)
-    if val is not None and str(val).strip():
-        return str(val).strip()
-    val = os.getenv(key)
     if val is not None and str(val).strip():
         return str(val).strip()
     return default
@@ -39,11 +39,13 @@ class Settings(BaseSettings):
     API_PREFIX: str = "/api"
     DATABASE_URL: str = _get_config_value("DATABASE_URL", "sqlite:///./kirana_ai.db")
 
-    # Application Settings from .env.example
+    # Application & Environment Settings
+    ENVIRONMENT: str = _get_config_value("ENVIRONMENT", _get_config_value("APP_ENV", "development"))
     APP_ENV: str = _get_config_value("APP_ENV", "development")
-    APP_HOST: str = _get_config_value("APP_HOST", "127.0.0.1")
-    APP_PORT: int = int(_get_config_value("APP_PORT", "8000"))
+    APP_HOST: str = _get_config_value("APP_HOST", "0.0.0.0" if os.getenv("PORT") else "127.0.0.1")
+    APP_PORT: int = int(_get_config_value("PORT", _get_config_value("APP_PORT", "8000")))
     SECRET_KEY: str = _get_config_value("SECRET_KEY", "replace_with_a_secure_random_secret_key")
+    FRONTEND_URL: str = _get_config_value("FRONTEND_URL", "")
 
     CORS_ORIGINS: Union[List[str], str] = [
         "http://localhost:3000",
@@ -119,6 +121,18 @@ class Settings(BaseSettings):
     def is_gnani_tts_ready(self) -> bool:
         """Check if Gnani Timbre TTS is enabled and configured with GNANI_API_KEY."""
         return self.GNANI_TTS_ENABLED and self.is_gnani_ready
+
+    @property
+    def is_postgres(self) -> bool:
+        """Check if active database engine is PostgreSQL (Supabase/Render)."""
+        db = (self.DATABASE_URL or "").strip().lower()
+        return db.startswith("postgres://") or db.startswith("postgresql://")
+
+    @property
+    def is_production(self) -> bool:
+        """Check if environment is set to production."""
+        env = (self.ENVIRONMENT or self.APP_ENV or "").strip().lower()
+        return env in ("production", "prod") or self.is_postgres
 
 
 settings = Settings()

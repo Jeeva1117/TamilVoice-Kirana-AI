@@ -22,11 +22,18 @@ engine_kwargs = {
 if is_sqlite:
     engine_kwargs["connect_args"] = {"check_same_thread": False}
 else:
-    # Production PostgreSQL connection pooling & pre-ping health checks
+    # Production PostgreSQL connection pooling & pre-ping health checks (Supabase / Render)
     engine_kwargs["pool_pre_ping"] = True
     engine_kwargs["pool_size"] = 10
     engine_kwargs["max_overflow"] = 20
     engine_kwargs["pool_recycle"] = 300
+
+    # Supabase / cloud SSL configuration
+    connect_args = {}
+    if "sslmode" not in raw_db_url.lower() and "localhost" not in raw_db_url and "127.0.0.1" not in raw_db_url:
+        connect_args["sslmode"] = "require"
+    if connect_args:
+        engine_kwargs["connect_args"] = connect_args
 
 engine = create_engine(raw_db_url, **engine_kwargs)
 
